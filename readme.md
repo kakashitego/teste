@@ -147,13 +147,27 @@ winget install --id 9NN162Z0WXSR --source msstore
 
 ### macOS: "Extreme InfiniTV.app" cannot be opened
 
-The macOS build is not yet notarized by Apple, so Gatekeeper blocks it on first launch with a message like _"Apple could not verify Extreme InfiniTV.app is free of malware"_. After dragging the app from the `.dmg` into `/Applications`, remove the quarantine flag from a Terminal:
+The macOS build is not yet notarized by Apple, so Gatekeeper can block it on first launch with a message like _"Apple could not verify Extreme InfiniTV.app is free of malware"_.
+
+After dragging the app from the `.dmg` into `/Applications`, try opening it once. If macOS shows the warning and there is no **Open** button in the dialog, close the warning with **Done**, then:
+
+1. Open the Apple menu and choose **System Settings**.
+2. Open **Privacy & Security**.
+3. Scroll down to the **Security** section.
+4. Click **Open Anyway** next to the message about Extreme InfiniTV being blocked.
+5. Confirm with your Mac login password if prompted, then click **Open** in the warning dialog.
+
+The **Open Anyway** option appears after you try to open the app and macOS saves the app as an exception after you approve it. url⟂Apple's Gatekeeper instructions⟂https://support.apple.com/en-gb/102445
+
+#### Terminal alternative
+
+You can also remove the quarantine attribute from Terminal:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/Extreme InfiniTV.app"
 ```
 
-Then open the app normally. You only need to do this once per install.
+Then open the app normally.
 
 ## Develop
 
