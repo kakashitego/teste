@@ -16,10 +16,10 @@
     },
     "exemplo_xtream": {
       "type": "xtream",
-      "title": "Meu Servidor Xtream",
-      "serverUrl": "http://servidor.exemplo.com:8080",
-      "username": "seu_usuario",
-      "password": "sua_senha"
+      "title": "Lista",
+      "serverUrl": "http://up.kiwi/",
+      "username": "351921603109",
+      "password": "34939156"
     }
   }
 }
