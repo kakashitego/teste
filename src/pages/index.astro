@@ -54,7 +54,7 @@ import {
 		<nav
 			id="hub-tiles"
 			aria-label="Browse" data-i18n-attr="aria-label:aria.browse"
-			class="grid gap-3 sm:gap-4 shrink-0
+			class="grid gap-2.5 sm:gap-4 shrink-0
 				grid-cols-1
 				landscape:grid-cols-[2fr_1fr] landscape:grid-rows-2
 				lg:grid-cols-[2fr_1fr] lg:grid-rows-2">
@@ -64,8 +64,8 @@ import {
 				style="animation-delay: 50ms;"
 				class="tile-enter lg:row-span-2 landscape:row-span-2 group relative flex flex-col justify-between
 					rounded-2xl border border-line bg-surface
-					p-6 sm:p-8 lg:p-12
-					min-h-56 landscape:min-h-0 lg:min-h-0 overflow-hidden
+					p-4 sm:p-8 lg:p-12
+					min-h-36 sm:min-h-56 landscape:min-h-0 lg:min-h-0 overflow-hidden
 					transition-[transform,border-color,background-color] duration-300 ease-out
 					hover:border-accent hover:bg-surface-2
 					focus-visible:bg-surface-2
@@ -79,27 +79,27 @@ import {
 					<IconDeviceTv
 						aria-hidden="true"
 						stroke={1}
-						class="size-12 sm:size-16 lg:size-24 text-fg-3 shrink-0 transition-colors duration-200 group-hover:text-accent group-focus-visible:text-accent"
+						class="size-8 sm:size-16 lg:size-24 text-fg-3 shrink-0 transition-colors duration-200 group-hover:text-accent group-focus-visible:text-accent"
 					/>
 					<p
 						id="hero-eyebrow"
-						class="font-sans text-eyebrow font-medium uppercase text-fg-3 text-right pt-2 tabular-nums"
+						class="font-sans text-eyebrow font-medium uppercase text-fg-3 text-right pt-1 sm:pt-2 tabular-nums"
 						aria-hidden="true">
 					</p>
 				</div>
-				<div class="relative mt-auto pt-6 z-10">
+				<div class="relative mt-auto pt-3 sm:pt-6 z-10">
 					<h2
 						data-i18n="nav.livetv"
 						class="font-semibold tracking-[-0.02em] leading-[0.92] text-fg
 							group-hover:text-accent group-focus-visible:text-accent
 							transition-colors duration-200 ms-[-0.05em]"
-						style="font-size: clamp(3rem, 6vw + 1.5rem, 8.5rem);">
+						style="font-size: clamp(1.85rem, 5vw + 1rem, 8.5rem);">
 						Live TV
 					</h2>
 					<p
 						id="livetv-tile-sub"
 						data-i18n="hub.tile.livetv.sub"
-						class="mt-4 sm:mt-5 text-sm sm:text-base text-fg-2 max-w-md font-sans tracking-tight truncate">
+						class="mt-1.5 sm:mt-5 text-xs sm:text-base text-fg-2 max-w-md font-sans tracking-tight truncate">
 						Channels, and what's on right now.
 					</p>
 				</div>
@@ -111,8 +111,8 @@ import {
 				style="animation-delay: 150ms;"
 				class="tile-enter group relative overflow-hidden flex flex-col justify-between
 					rounded-2xl border border-line bg-surface
-					p-5 sm:p-6
-					min-h-28 landscape:min-h-0 lg:min-h-0
+					p-3.5 sm:p-6
+					min-h-20 sm:min-h-28 landscape:min-h-0 lg:min-h-0
 					transition-[transform,border-color,background-color] duration-300 ease-out
 					hover:border-accent hover:bg-surface-2
 					focus-visible:bg-surface-2
@@ -125,15 +125,15 @@ import {
 				<IconMovie
 					aria-hidden="true"
 					stroke={1.25}
-					class="relative z-10 size-9 sm:size-10 lg:size-12 text-fg-3 transition-colors duration-200 group-hover:text-accent group-focus-visible:text-accent"
+					class="relative z-10 size-6 sm:size-10 lg:size-12 text-fg-3 transition-colors duration-200 group-hover:text-accent group-focus-visible:text-accent"
 				/>
-				<div class="relative z-10 mt-auto pt-4">
-					<h2 data-i18n="nav.movies" class="text-2xl sm:text-3xl lg:text-5xl font-semibold tracking-[-0.02em] leading-[0.95]
+				<div class="relative z-10 mt-auto pt-2 sm:pt-4">
+					<h2 data-i18n="nav.movies" class="text-lg sm:text-3xl lg:text-5xl font-semibold tracking-[-0.02em] leading-[0.95]
 						text-fg group-hover:text-accent group-focus-visible:text-accent
 						transition-colors duration-200 ms-[-0.05em]">
 						Movies
 					</h2>
-					<p data-i18n="hub.tile.movies.sub" class="mt-1.5 text-sm text-fg-2">
+					<p data-i18n="hub.tile.movies.sub" class="mt-0.5 sm:mt-1.5 text-xs sm:text-sm text-fg-2">
 						Browse the library.
 					</p>
 				</div>
@@ -145,8 +145,8 @@ import {
 				style="animation-delay: 250ms;"
 				class="tile-enter group relative overflow-hidden flex flex-col justify-between
 					rounded-2xl border border-line bg-surface
-					p-5 sm:p-6
-					min-h-28 landscape:min-h-0 lg:min-h-0
+					p-3.5 sm:p-6
+					min-h-20 sm:min-h-28 landscape:min-h-0 lg:min-h-0
 					transition-[transform,border-color,background-color] duration-300 ease-out
 					hover:border-accent hover:bg-surface-2
 					focus-visible:bg-surface-2
@@ -159,15 +159,15 @@ import {
 				<IconStack2
 					aria-hidden="true"
 					stroke={1.25}
-					class="relative z-10 size-9 sm:size-10 lg:size-12 text-fg-3 transition-colors duration-200 group-hover:text-accent group-focus-visible:text-accent"
+					class="relative z-10 size-6 sm:size-10 lg:size-12 text-fg-3 transition-colors duration-200 group-hover:text-accent group-focus-visible:text-accent"
 				/>
-				<div class="relative z-10 mt-auto pt-4">
-					<h2 data-i18n="nav.series" class="text-2xl sm:text-3xl lg:text-5xl font-semibold tracking-[-0.02em] leading-[0.95]
+				<div class="relative z-10 mt-auto pt-2 sm:pt-4">
+					<h2 data-i18n="nav.series" class="text-lg sm:text-3xl lg:text-5xl font-semibold tracking-[-0.02em] leading-[0.95]
 						text-fg group-hover:text-accent group-focus-visible:text-accent
 						transition-colors duration-200 ms-[-0.05em]">
 						Series
 					</h2>
-					<p data-i18n="hub.tile.series.sub" class="mt-1.5 text-sm text-fg-2">
+					<p data-i18n="hub.tile.series.sub" class="mt-0.5 sm:mt-1.5 text-xs sm:text-sm text-fg-2">
 						Shows and full seasons.
 					</p>
 				</div>
