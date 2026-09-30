@@ -5,6 +5,7 @@ import WindowResizeEdges from "@/components/WindowResizeEdges.astro"
 import CatalogWarmingIndicator from "@/components/CatalogWarmingIndicator.svelte"
 import pkg from "../../package.json"
 import { TV_ROUTE_TABLE } from "@/scripts/lib/tv-routes"
+import defaultPlaylistConfig from "@/config/default-playlist.json"
 import "../styles/global.css"
 
 interface Props {
@@ -52,6 +53,60 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
         visibility: hidden;
       }
     </style>
+    {
+      defaultPlaylistConfig?.enabled && defaultPlaylistConfig?.entry && (
+        <script is:inline define:vars={{ defaultPlaylistConfig }}>
+          (function() {
+            try {
+              var cfg = defaultPlaylistConfig;
+              var entry = cfg.entry;
+              var locked = cfg.lockToDefault === true;
+              if (entry && typeof entry === "object") {
+                var norm = Object.assign({
+                  _id: "default-project-playlist",
+                  addedAt: 0,
+                  type: entry.type || "m3u",
+                  title: entry.title || "IPTV Playlist"
+                }, entry);
+                if (norm.type === "xtream") {
+                  norm.serverUrl = (norm.serverUrl || "").replace(/\/+$/, "");
+                } else if (norm.type === "m3u") {
+                  norm.url = (norm.url || "").trim();
+                }
+                var playlistsRaw = localStorage.getItem("xt_playlists");
+                var playlists = null;
+                try { if (playlistsRaw) playlists = JSON.parse(playlistsRaw); } catch(e) {}
+
+                var shouldSeed = false;
+                if (!playlists || !Array.isArray(playlists.entries) || playlists.entries.length === 0) {
+                  shouldSeed = true;
+                } else if (locked) {
+                  var found = playlists.entries.find(function(e) { return e._id === norm._id; });
+                  if (!found || playlists.entries.length !== 1 || playlists.selectedId !== norm._id) {
+                    shouldSeed = true;
+                  } else if (
+                    found.type !== norm.type ||
+                    found.title !== norm.title ||
+                    (norm.type === "m3u"
+                      ? found.url !== norm.url
+                      : (found.serverUrl !== norm.serverUrl || found.username !== norm.username || found.password !== norm.password))
+                  ) {
+                    shouldSeed = true;
+                  }
+                }
+
+                if (shouldSeed) {
+                  var seed = { entries: [norm], selectedId: norm._id };
+                  localStorage.setItem("xt_playlists", JSON.stringify(seed));
+                  localStorage.setItem("xt_default_playlist", JSON.stringify(norm));
+                }
+                document.documentElement.removeAttribute("data-first-run");
+              }
+            } catch(e) {}
+          })();
+        </script>
+      )
+    }
     <script is:inline>
       try {
         if (sessionStorage.getItem("xt_splash_done") === "1") {

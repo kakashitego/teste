@@ -369,7 +369,6 @@ async function ensureMigrated() {
   if (migrationPromise) return migrationPromise
   migrationPromise = (async () => {
     const existing = await readRaw()
-    if (existing && Array.isArray(existing.entries) && existing.entries.length > 0) return existing
 
     // Check if there is a preconfigured or admin-set default playlist
     try {
@@ -401,8 +400,16 @@ async function ensureMigrated() {
               existing.entries.length !== 1 ||
               existing.selectedId !== defaultEntry._id
             ) {
+              if (!isMatch) {
+                try {
+                  const { invalidateEntry } = await import("./cache.js")
+                  invalidateEntry(defaultEntry._id)
+                } catch {}
+              }
               const seed = { entries: [defaultEntry], selectedId: defaultEntry._id }
               await writeRaw(seed)
+              dispatch(EVT_ENTRIES_UPDATED)
+              dispatch(EVT_ACTIVE_CHANGED, defaultEntry)
               return seed
             }
             return existing

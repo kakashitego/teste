@@ -2,6 +2,7 @@
 import { defineConfig } from "astro/config"
 import tailwindcss from "@tailwindcss/vite"
 import { optimizeTablerIconsImport } from "./src/plugins/vite-plugin-optimize-tabler-icons.ts"
+import { viteCorsProxyPlugin } from "./src/plugins/vite-plugin-cors-proxy.ts"
 import svelte from "@astrojs/svelte"
 
 const hmrHost = process.env.XTREAM_HMR_HOST
@@ -16,7 +17,7 @@ export default defineConfig({
     port: 3000,
   },
   vite: {
-    plugins: [tailwindcss(), optimizeTablerIconsImport()],
+    plugins: [tailwindcss(), optimizeTablerIconsImport(), viteCorsProxyPlugin()],
     server: {
       host: "0.0.0.0",
       port: 3000,

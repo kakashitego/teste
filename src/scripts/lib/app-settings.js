@@ -1115,7 +1115,12 @@ const KEY_CORS_PROXY = "xt_cors_proxy"
 export const CORS_PROXY_EVENT = "xt:cors-proxy-changed"
 
 export function getCorsProxy() {
-  return readLS(KEY_CORS_PROXY, "").trim()
+  const custom = readLS(KEY_CORS_PROXY, "").trim()
+  if (custom) return custom
+  if (typeof window !== "undefined" && !window.__TAURI__ && !window.__TAURI_INTERNALS__) {
+    return "/api/proxy?url="
+  }
+  return ""
 }
 
 export function setCorsProxy(proxyUrl) {

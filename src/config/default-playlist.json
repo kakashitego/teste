@@ -1,25 +1,13 @@
 {
   "enabled": true,
   "lockToDefault": true,
-  "version": 2,
+  "version": 3,
   "entry": {
-    "type": "m3u",
-    "title": "Lista IPTV",
-    "url": "https://iptv-org.github.io/iptv/countries/br.m3u"
+    "type": "xtream",
+    "title": "Lista",
+    "serverUrl": "http://up.kiwi",
+    "username": "351921603109",
+    "password": "34939156"
   },
-  "_como_configurar": {
-    "instrucoes": "Para mudar a lista do projeto, altere os campos dentro de 'entry'. Suporta tanto M3U quanto Xtream Codes.",
-    "exemplo_m3u": {
-      "type": "m3u",
-      "title": "Minha Lista M3U",
-      "url": "https://exemplo.com/lista.m3u"
-    },
-    "exemplo_xtream": {
-      "type": "xtream",
-      "title": "Lista",
-      "serverUrl": "http://up.kiwi/",
-      "username": "351921603109",
-      "password": "34939156"
-    }
-  }
+  "_instrucoes": "Para trocar de lista no futuro, basta alterar os campos acima (serverUrl, username, password ou URL de lista M3U) e alterar a version se quiser forçar atualização imediata para todos os visitantes."
 }
