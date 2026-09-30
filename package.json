@@ -3,6 +3,7 @@
   "type": "module",
   "version": "1.9.0",
   "license": "GPL-3.0-or-later",
+  "packageManager": "pnpm@10.31.0",
   "scripts": {
     "dev": "astro dev --host 0.0.0.0 --port 3000",
     "build": "astro build",
@@ -72,12 +73,5 @@
     "typescript-eslint": "^8.68.0",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
-  },
-  "workspaces": ["."],
-  "overrides": {
-    "tmp": ">=0.2.6"
-  },
-  "patchedDependencies": {
-    "mpegts.js@1.8.0": "patches/mpegts.js.patch"
   }
 }
