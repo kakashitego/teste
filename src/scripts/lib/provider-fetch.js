@@ -2,6 +2,8 @@ import { log, redactUrl } from "@/scripts/lib/log.js"
 import {
   getUserAgent,
   getNetworkTimeoutSeconds,
+  getCorsProxy,
+  applyCorsProxy,
 } from "@/scripts/lib/app-settings.js"
 import { splitUrlAuth } from "@/scripts/lib/url-auth"
 import { recordNetLog } from "@/scripts/lib/net-log"
@@ -213,9 +215,11 @@ export async function providerFetch(url, init = {}) {
   const useTauri = isTauri
 
   if (!useTauri) {
-    log.log(`[xt:net] native start`, u)
+    const corsProxy = getCorsProxy()
+    const targetUrl = corsProxy ? applyCorsProxy(requestUrl, corsProxy) : requestUrl
+    log.log(`[xt:net] native start${corsProxy ? " (cors-proxy)" : ""}`, u)
     try {
-      const r = await nativeFetch(requestUrl, callInit, u, abortSignal)
+      const r = await nativeFetch(targetUrl, callInit, u, abortSignal)
       noteSuccess(r.status, context)
       return r
     } catch (e) {

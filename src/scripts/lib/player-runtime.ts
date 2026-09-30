@@ -1745,14 +1745,17 @@ async function mountVideoJs(
     audioTrackButton: true,
     fullscreenToggle: true,
   }
-  // A non-empty playbackRates array surfaces its own rate control, so gate it like the menu button.
-  const playbackRatesEnabled = controlBar.playbackRateMenuButton !== false
+  // Ensure playsinline and webkit-playsinline attributes on mobile (especially iOS Safari)
+  videoEl.setAttribute("playsinline", "true")
+  videoEl.setAttribute("webkit-playsinline", "true")
+
   const player = videojs(videoEl, {
     liveui: options.liveui ?? false,
     fluid: options.fluid ?? true,
     preload: options.preload ?? "auto",
     autoplay: options.autoplay ?? false,
     aspectRatio: options.aspectRatio ?? "16:9",
+    playsinline: true,
     controlBar,
     ...(playbackRatesEnabled ? { playbackRates: [0.75, 1, 1.25, 1.5, 2] } : {}),
     html5: options.html5 ?? {

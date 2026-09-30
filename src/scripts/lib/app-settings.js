@@ -1111,7 +1111,42 @@ export function setTmdbApiKey(key) {
 // writes - so the off-rewrite below only applies pre-1.9 installs.
 const KEY_TMDB_ENABLED_MIGRATED = "xt_tmdb_enabled_v2"
 // Captured before whats-new.ts (async, splash-gated) can bump the marker.
+const KEY_CORS_PROXY = "xt_cors_proxy"
+export const CORS_PROXY_EVENT = "xt:cors-proxy-changed"
+
+export function getCorsProxy() {
+  return readLS(KEY_CORS_PROXY, "").trim()
+}
+
+export function setCorsProxy(proxyUrl) {
+  const cleaned = (proxyUrl || "").trim()
+  writeLS(KEY_CORS_PROXY, cleaned)
+  document.dispatchEvent(
+    new CustomEvent(CORS_PROXY_EVENT, { detail: { value: cleaned } })
+  )
+}
+
+/**
+ * Transforms a destination URL with the configured CORS proxy template.
+ * Supported template formats:
+ * - "https://proxy.example.com/?url=" -> "https://proxy.example.com/?url=" + encodeURIComponent(url)
+ * - "https://proxy.example.com/%s" -> "https://proxy.example.com/" + encodeURIComponent(url)
+ */
+export function applyCorsProxy(url, proxyTemplate = getCorsProxy()) {
+  if (!proxyTemplate || !url) return url
+  const trimmed = proxyTemplate.trim()
+  if (!trimmed) return url
+  if (trimmed.includes("%s")) {
+    return trimmed.replace("%s", encodeURIComponent(url))
+  }
+  if (trimmed.endsWith("=") || trimmed.endsWith("/")) {
+    return trimmed + encodeURIComponent(url)
+  }
+  return `${trimmed}?url=${encodeURIComponent(url)}`
+}
+
 const lastSeenVersionAtLoad = (() => {
+  if (typeof window === "undefined" || typeof localStorage === "undefined") return null
   try {
     return localStorage.getItem("xt_last_seen_version")
   } catch {
@@ -1119,6 +1154,7 @@ const lastSeenVersionAtLoad = (() => {
   }
 })()
 ;(function migrateTmdbEnabledLegacy() {
+  if (typeof window === "undefined" || typeof localStorage === "undefined") return
   try {
     if (localStorage.getItem(KEY_TMDB_ENABLED_MIGRATED) === "1") return
     const raw = localStorage.getItem(KEY_TMDB_ENABLED)

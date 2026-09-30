@@ -1025,6 +1025,37 @@ const navStructure: NavSection[] = [
               </div>
             </div>
 
+            <!-- CORS & Stream Proxy: allows web browser build on Cloudflare Pages to reach HTTP/non-CORS IPTV hosts -->
+            <div data-settings-item class="settings-row settings-row--stack scroll-mt-6 lg:scroll-mt-20">
+              <div class="settings-row__text">
+                <h3 class="text-sm font-medium leading-snug">CORS & Stream Proxy (Web)</h3>
+                <p id="settings-cors-proxy-helper" class="text-xs text-fg-3">
+                  Allows web browsers (on Cloudflare Pages, etc.) to connect to IPTV providers that don't send CORS headers or use plain HTTP. Leave empty for direct browser connection.
+                </p>
+              </div>
+              <div class="settings-row__control w-full flex-col items-stretch gap-1">
+                <div class="flex gap-2">
+                  <input
+                    id="cors-proxy-input"
+                    type="url"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="e.g. https://my-proxy.workers.dev/?url="
+                    class="field-input font-mono flex-1 min-w-0"
+                    aria-describedby="settings-cors-proxy-helper"
+                  />
+                  <button id="cors-proxy-save" type="button" class="btn justify-center">
+                    <IconDeviceFloppy aria-hidden="true" class="btn-icon" />
+                    <span data-i18n="common.save">Save</span>
+                  </button>
+                </div>
+                <span
+                  id="cors-proxy-msg"
+                  aria-live="polite"
+                  class="text-xs text-fg-3 transition-opacity duration-300 empty:hidden"></span>
+              </div>
+            </div>
+
             <!-- Developer mode: unlocks the network log card below -->
             <div data-settings-item class="settings-row scroll-mt-6 lg:scroll-mt-20">
               <div class="settings-row__text">
@@ -2453,6 +2484,8 @@ const navStructure: NavSection[] = [
       UA_PRESETS,
       getUserAgent,
       setUserAgent,
+      getCorsProxy,
+      setCorsProxy,
       getDownloadDir,
       setDownloadDir,
       getDownloadConcurrency,
@@ -4170,6 +4203,28 @@ const navStructure: NavSection[] = [
           : "Saved. Active in the desktop build only."
       )
       flashSuccess(uaSaveBtn)
+    })
+
+    // CORS & Stream Proxy (Web build / mobile)
+    const corsProxyInput = /** @type {HTMLInputElement|null} */ (
+      document.getElementById("cors-proxy-input")
+    )
+    const corsProxySaveBtn = /** @type {HTMLButtonElement|null} */ (
+      document.getElementById("cors-proxy-save")
+    )
+    const corsProxyMsgEl = document.getElementById("cors-proxy-msg")
+
+    if (corsProxyInput) {
+      corsProxyInput.value = getCorsProxy()
+    }
+    corsProxySaveBtn?.addEventListener("click", () => {
+      const val = (corsProxyInput?.value || "").trim()
+      setCorsProxy(val)
+      flashMsg(
+        corsProxyMsgEl,
+        val ? "CORS proxy saved. Active for web requests." : "CORS proxy cleared. Using direct connection."
+      )
+      flashSuccess(corsProxySaveBtn)
     })
 
     // ---------------------------------------------------------------------
