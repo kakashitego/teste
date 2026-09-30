@@ -7,16 +7,24 @@ import svelte from "@astrojs/svelte"
 const hmrHost = process.env.XTREAM_HMR_HOST
 
 export default defineConfig({
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: "viewport",
+  },
+  server: {
+    host: "0.0.0.0",
+    port: 3000,
+  },
   vite: {
     plugins: [tailwindcss(), optimizeTablerIconsImport()],
     server: {
       host: "0.0.0.0",
-      port: 4321,
+      port: 3000,
       watch: {
         ignored: ["**/src-tauri/**"],
       },
       hmr: hmrHost
-        ? { host: hmrHost, protocol: "ws", port: 4321 }
+        ? { host: hmrHost, protocol: "ws", port: 3000 }
         : undefined,
     },
     build: {

@@ -414,6 +414,7 @@ const settingsActive = path === "/settings" || path.startsWith("/settings/")
       return (
         <a
           href={href}
+          data-astro-prefetch="viewport"
           aria-label={label}
           aria-current={active ? "page" : undefined}
           data-i18n-attr={`aria-label:${key}`}

@@ -219,7 +219,7 @@ async function ensureVodCategoryMap() {
 // ----------------------------
 // Poster grid
 // ----------------------------
-const PAGE_SIZE = 200
+const PAGE_SIZE = typeof window !== "undefined" && window.innerWidth < 768 ? 60 : 200
 const AUTO_LOAD_CAP = 1500
 // Matches the resume threshold on /movies/detail.
 const RESUME_MIN_SECONDS = 30

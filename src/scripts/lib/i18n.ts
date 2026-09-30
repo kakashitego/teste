@@ -209,7 +209,10 @@ function detectLocale(): LocaleCode {
   if (typeof navigator === "undefined") return "en"
   for (const tag of navigator.languages || [navigator.language || ""]) {
     const resolved = resolveNavigatorTag(tag)
-    if (resolved) return resolved
+    if (resolved) {
+      writePersistedLocale(resolved)
+      return resolved
+    }
   }
   return "en"
 }
@@ -231,10 +234,10 @@ export async function setLocale(input: string | null): Promise<void> {
   activeCode = code
   activeMessages = cache.get(code)!
   writeCachedMessages(code, activeMessages)
-  const matchesAutoDetect = code === detectLocale() && !readPersistedLocale()
-  writePersistedLocale(matchesAutoDetect ? null : code)
+  writePersistedLocale(code)
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("lang", code)
+    document.documentElement.setAttribute("data-locale", code)
     document.documentElement.setAttribute("dir", RTL_LOCALES.has(code) ? "rtl" : "ltr")
     applyI18nDOM()
     document.dispatchEvent(new CustomEvent(LOCALE_CHANGED_EVENT, { detail: { code } }))

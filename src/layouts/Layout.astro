@@ -46,6 +46,12 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
         </script>
       )
     }
+    <style is:inline id="xt-i18n-shield">
+      html[data-locale]:not([data-locale="en"]) [data-i18n]:not([data-i18n-done]),
+      html[data-locale]:not([data-locale="en"]) [data-i18n-html]:not([data-i18n-done]) {
+        visibility: hidden;
+      }
+    </style>
     <script is:inline>
       try {
         if (sessionStorage.getItem("xt_splash_done") === "1") {
@@ -172,8 +178,33 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
         var KNOWN_LOCALES = ["en","es","de","fr","pt-BR","it","ru","zh","ja","tr","ar","ur","nl","hi","id","pl"];
         var RTL_LOCALES = ["ar","ur"];
         var storedLocale = localStorage.getItem("xt_locale") || "";
+        if (!storedLocale && typeof navigator !== "undefined") {
+          var navLangs = navigator.languages || [navigator.language || ""];
+          for (var li = 0; li < navLangs.length; li++) {
+            var rawTag = (navLangs[li] || "").toLowerCase();
+            if (rawTag.indexOf("pt") === 0) { storedLocale = "pt-BR"; break; }
+            if (rawTag.indexOf("es") === 0) { storedLocale = "es"; break; }
+            if (rawTag.indexOf("fr") === 0) { storedLocale = "fr"; break; }
+            if (rawTag.indexOf("de") === 0) { storedLocale = "de"; break; }
+            if (rawTag.indexOf("it") === 0) { storedLocale = "it"; break; }
+            if (rawTag.indexOf("ru") === 0) { storedLocale = "ru"; break; }
+            if (rawTag.indexOf("zh") === 0) { storedLocale = "zh"; break; }
+            if (rawTag.indexOf("ja") === 0) { storedLocale = "ja"; break; }
+            if (rawTag.indexOf("tr") === 0) { storedLocale = "tr"; break; }
+            if (rawTag.indexOf("ar") === 0) { storedLocale = "ar"; break; }
+            if (rawTag.indexOf("ur") === 0) { storedLocale = "ur"; break; }
+            if (rawTag.indexOf("nl") === 0) { storedLocale = "nl"; break; }
+            if (rawTag.indexOf("hi") === 0) { storedLocale = "hi"; break; }
+            if (rawTag.indexOf("id") === 0) { storedLocale = "id"; break; }
+            if (rawTag.indexOf("pl") === 0) { storedLocale = "pl"; break; }
+          }
+          if (storedLocale) {
+            try { localStorage.setItem("xt_locale", storedLocale); } catch (e) {}
+          }
+        }
         if (storedLocale && KNOWN_LOCALES.indexOf(storedLocale) !== -1) {
           document.documentElement.setAttribute("lang", storedLocale);
+          document.documentElement.setAttribute("data-locale", storedLocale);
           document.documentElement.setAttribute(
             "dir",
             RTL_LOCALES.indexOf(storedLocale) !== -1 ? "rtl" : "ltr"
@@ -182,59 +213,112 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
 
         // Translate [data-i18n*] elements before first paint
         if (storedLocale && storedLocale !== "en") {
+          var msgs = null;
           var rawMessages = localStorage.getItem("xt_locale_messages_v3");
           try { localStorage.removeItem("xt_locale_messages_v1"); } catch (e) {}
           try { localStorage.removeItem("xt_locale_messages_v2"); } catch (e) {}
           if (rawMessages) {
-            var cached = JSON.parse(rawMessages);
-            if (cached && cached.code === storedLocale && cached.messages) {
-              var msgs = cached.messages;
-              var translateEl = function (el) {
-                if (!el || el.nodeType !== 1) return;
-                var textKey = el.getAttribute("data-i18n");
-                if (textKey && msgs[textKey] != null) el.textContent = msgs[textKey];
-                var htmlKey = el.getAttribute("data-i18n-html");
-                if (htmlKey && msgs[htmlKey] != null) el.innerHTML = msgs[htmlKey];
-                var attrSpec = el.getAttribute("data-i18n-attr");
-                if (attrSpec) {
-                  var pairs = attrSpec.split(";");
-                  for (var pi = 0; pi < pairs.length; pi++) {
-                    var parts = pairs[pi].split(":");
-                    var attrName = (parts[0] || "").trim();
-                    var attrKey = (parts[1] || "").trim();
-                    if (attrName && attrKey && msgs[attrKey] != null) {
-                      el.setAttribute(attrName, msgs[attrKey]);
-                    }
+            try {
+              var cached = JSON.parse(rawMessages);
+              if (cached && cached.code === storedLocale && cached.messages) {
+                msgs = cached.messages;
+              }
+            } catch (e) {}
+          }
+
+          // Fallback dictionary for core UI keys if cache was not yet populated
+          if (!msgs && storedLocale === "pt-BR") {
+            msgs = {
+              "nav.home": "Início",
+              "nav.livetv": "TV ao vivo",
+              "nav.movies": "Filmes",
+              "nav.series": "Séries",
+              "nav.epg": "Programação",
+              "nav.downloads": "Downloads",
+              "nav.favorites": "Favoritos",
+              "nav.watchlist": "Assistir depois",
+              "nav.recentlyAdded": "Adicionados recentemente",
+              "nav.search": "Pesquisar",
+              "nav.settings": "Configurações",
+              "page.movies.title": "Filmes",
+              "page.series.title": "Séries",
+              "page.livetv.title": "TV ao vivo",
+              "list.category": "Categoria",
+              "list.allCategories": "Todas as categorias",
+              "list.inCatalogue": "no catálogo",
+              "list.searchMovies": "Pesquisar filmes",
+              "list.searchMoviesPlaceholder": "Pesquisar filmes…",
+              "list.searchSeries": "Pesquisar séries",
+              "list.searchSeriesPlaceholder": "Pesquisar séries…",
+              "list.view": "Exibição",
+              "hub.tile.livetv.sub": "Canais e o que está passando agora.",
+              "hub.tile.movies.sub": "Navegue pela biblioteca.",
+              "hub.tile.series.sub": "Séries e temporadas completas.",
+              "sidebar.more": "Mais",
+              "common.search": "Pesquisar"
+            };
+          }
+
+          if (msgs) {
+            var translateEl = function (el) {
+              if (!el || el.nodeType !== 1) return;
+              var textKey = el.getAttribute("data-i18n");
+              if (textKey && msgs[textKey] != null) el.textContent = msgs[textKey];
+              var htmlKey = el.getAttribute("data-i18n-html");
+              if (htmlKey && msgs[htmlKey] != null) el.innerHTML = msgs[htmlKey];
+              var attrSpec = el.getAttribute("data-i18n-attr");
+              if (attrSpec) {
+                var pairs = attrSpec.split(";");
+                for (var pi = 0; pi < pairs.length; pi++) {
+                  var parts = pairs[pi].split(":");
+                  var attrName = (parts[0] || "").trim();
+                  var attrKey = (parts[1] || "").trim();
+                  if (attrName && attrKey && msgs[attrKey] != null) {
+                    el.setAttribute(attrName, msgs[attrKey]);
                   }
                 }
-              };
-              var i18nObserver = new MutationObserver(function (mutations) {
-                for (var mi = 0; mi < mutations.length; mi++) {
-                  var added = mutations[mi].addedNodes;
-                  for (var ai = 0; ai < added.length; ai++) {
-                    var node = added[ai];
-                    if (node.nodeType !== 1) continue;
-                    if (
-                      node.hasAttribute("data-i18n") ||
-                      node.hasAttribute("data-i18n-html") ||
-                      node.hasAttribute("data-i18n-attr")
-                    ) {
-                      translateEl(node);
-                    }
-                    var matches = node.querySelectorAll
-                      ? node.querySelectorAll("[data-i18n], [data-i18n-html], [data-i18n-attr]")
-                      : null;
-                    if (matches) {
-                      for (var qi = 0; qi < matches.length; qi++) translateEl(matches[qi]);
-                    }
+              }
+              el.setAttribute("data-i18n-done", "1");
+            };
+
+            window.__xtTranslatePage = function (root) {
+              if (!root) return;
+              if (root.nodeType === 1 && (root.hasAttribute("data-i18n") || root.hasAttribute("data-i18n-html") || root.hasAttribute("data-i18n-attr"))) {
+                translateEl(root);
+              }
+              var matches = root.querySelectorAll ? root.querySelectorAll("[data-i18n], [data-i18n-html], [data-i18n-attr]") : null;
+              if (matches) {
+                for (var qi = 0; qi < matches.length; qi++) translateEl(matches[qi]);
+              }
+            };
+
+            var i18nObserver = new MutationObserver(function (mutations) {
+              for (var mi = 0; mi < mutations.length; mi++) {
+                var added = mutations[mi].addedNodes;
+                for (var ai = 0; ai < added.length; ai++) {
+                  var node = added[ai];
+                  if (node.nodeType !== 1) continue;
+                  if (
+                    node.hasAttribute("data-i18n") ||
+                    node.hasAttribute("data-i18n-html") ||
+                    node.hasAttribute("data-i18n-attr")
+                  ) {
+                    translateEl(node);
+                  }
+                  var matches = node.querySelectorAll
+                    ? node.querySelectorAll("[data-i18n], [data-i18n-html], [data-i18n-attr]")
+                    : null;
+                  if (matches) {
+                    for (var qi = 0; qi < matches.length; qi++) translateEl(matches[qi]);
                   }
                 }
-              });
-              i18nObserver.observe(document.documentElement, { childList: true, subtree: true });
-              document.addEventListener("DOMContentLoaded", function () {
-                i18nObserver.disconnect();
-              });
-            }
+              }
+            });
+            i18nObserver.observe(document.documentElement, { childList: true, subtree: true });
+            document.addEventListener("DOMContentLoaded", function () {
+              if (window.__xtTranslatePage) window.__xtTranslatePage(document.body);
+              i18nObserver.disconnect();
+            });
           }
         }
 
@@ -392,6 +476,11 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
         <slot />
       </div>
     </div>
+    <script is:inline>
+      if (window.__xtTranslatePage) {
+        window.__xtTranslatePage(document.body);
+      }
+    </script>
     {
       showVersion && (
         <div
@@ -505,6 +594,9 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
   }
   @media (prefers-reduced-motion: reduce) {
     #xt-app-splash-bg { display: none; }
+  }
+  @media (max-width: 768px) {
+    #xt-app-splash-bg { display: none !important; }
   }
   :root[data-perf-mode="on"] #xt-app-splash-bg { display: none; }
 

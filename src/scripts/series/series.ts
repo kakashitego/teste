@@ -344,7 +344,7 @@ async function ensureSeriesCategoryMap() {
 // ----------------------------
 // Poster grid
 // ----------------------------
-const PAGE_SIZE = 200
+const PAGE_SIZE = typeof window !== "undefined" && window.innerWidth < 768 ? 60 : 200
 const AUTO_LOAD_CAP = 1500
 /** @type {IntersectionObserver|null} */
 let infiniteObs = null
