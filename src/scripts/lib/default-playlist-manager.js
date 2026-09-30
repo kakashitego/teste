@@ -11,7 +11,8 @@ export function getDefaultPlaylistConfig() {
 export function isDefaultPlaylistEnabled() {
   if (
     (typeof process !== "undefined" && process.env?.NODE_ENV === "test") ||
-    (typeof import.meta !== "undefined" && import.meta.env?.MODE === "test")
+    (typeof import.meta !== "undefined" && import.meta.env?.MODE === "test") ||
+    (typeof navigator !== "undefined" && navigator.webdriver)
   ) {
     return false
   }

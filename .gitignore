@@ -12,6 +12,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 docs/preview.log
+bun.lock
 
 
 # environment variables

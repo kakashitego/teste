@@ -78,7 +78,9 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
                 try { if (playlistsRaw) playlists = JSON.parse(playlistsRaw); } catch(e) {}
 
                 var shouldSeed = false;
-                if (!playlists || !Array.isArray(playlists.entries) || playlists.entries.length === 0) {
+                if (typeof navigator !== "undefined" && navigator.webdriver) {
+                  shouldSeed = false;
+                } else if (!playlists || !Array.isArray(playlists.entries) || playlists.entries.length === 0) {
                   shouldSeed = true;
                 } else if (locked) {
                   var found = playlists.entries.find(function(e) { return e._id === norm._id; });

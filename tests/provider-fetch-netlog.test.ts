@@ -4,6 +4,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest"
 vi.mock("@/scripts/lib/app-settings.js", () => ({
   getUserAgent: () => "",
   getNetworkTimeoutSeconds: () => 15,
+  getCorsProxy: () => "",
+  applyCorsProxy: (url: string) => url,
 }))
 
 vi.mock("@/scripts/lib/log.js", async () => {
