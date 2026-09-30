@@ -200,7 +200,7 @@ const navStructure: NavSection[] = [
           class="flex flex-col divide-y divide-line/60 rounded-xl border border-line bg-bg overflow-hidden">
           <div data-i18n="settings.playlists.empty" class="px-4 py-4 text-xs text-fg-3">No playlists yet.</div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+        <div id="settings-admin-controls" class="hidden grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
           <a href="/login" class="btn justify-start sm:justify-center">
             <IconPlus aria-hidden="true" class="btn-icon" />
             <span data-i18n="playlist.add">Add playlist</span>
@@ -211,6 +211,13 @@ const navStructure: NavSection[] = [
             class="btn justify-start sm:justify-center hidden">
             <IconRefresh aria-hidden="true" class="btn-icon" />
             <span data-i18n="playlist.refreshActive">Refresh active</span>
+          </button>
+          <button
+            id="settings-set-default"
+            type="button"
+            class="btn justify-start sm:justify-center text-accent">
+            <IconStar aria-hidden="true" class="btn-icon" />
+            <span>Tornar lista padrão (p/ todos)</span>
           </button>
           <button
             id="settings-add-from-website"
@@ -225,6 +232,20 @@ const navStructure: NavSection[] = [
             class="btn justify-start sm:justify-center">
             <IconPlus aria-hidden="true" class="btn-icon" />
             <span data-i18n="editor.newCustomPlaylistBtn">New custom playlist</span>
+          </button>
+        </div>
+        <div class="flex items-center justify-between text-xs text-fg-3 pt-2 border-t border-line/40">
+          <div class="flex items-center gap-2">
+            <span id="admin-badge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-surface-2 text-fg-3">
+              Modo Visitante
+            </span>
+            <span id="default-playlist-notice" class="text-xs text-accent hidden font-medium">✓ Lista padrão ativa</span>
+          </div>
+          <button
+            id="admin-auth-btn"
+            type="button"
+            class="text-accent hover:underline cursor-pointer font-medium">
+            Acesso Administrador
           </button>
         </div>
       </div>
@@ -2261,6 +2282,101 @@ const navStructure: NavSection[] = [
         toastError(t("editor.newPlaylistCreateFail"))
       }
     })
+
+    const adminControlsEl = document.getElementById("settings-admin-controls")
+    const adminBadgeEl = document.getElementById("admin-badge")
+    const adminAuthBtn = document.getElementById("admin-auth-btn")
+    const setDefaultBtn = document.getElementById("settings-set-default")
+    const defaultPlaylistNoticeEl = document.getElementById("default-playlist-notice")
+
+    async function updateAdminUI() {
+      const { isAdmin } = await import("@/scripts/lib/admin-auth.js")
+      const { getDefaultPlaylist, isDefaultPlaylistLocked } = await import("@/scripts/lib/default-playlist-manager.js")
+      const admin = isAdmin()
+      const def = getDefaultPlaylist()
+      const isLocked = isDefaultPlaylistLocked()
+
+      if (adminControlsEl) {
+        if (admin && !isLocked) {
+          adminControlsEl.classList.remove("hidden")
+          adminControlsEl.classList.add("grid")
+        } else {
+          adminControlsEl.classList.add("hidden")
+          adminControlsEl.classList.remove("grid")
+        }
+      }
+
+      if (adminBadgeEl) {
+        if (isLocked) {
+          adminBadgeEl.textContent = "Lista do Projeto"
+          adminBadgeEl.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-accent/20 text-accent border border-accent/30"
+        } else if (admin) {
+          adminBadgeEl.textContent = "Administrador"
+          adminBadgeEl.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-accent/20 text-accent border border-accent/30"
+        } else {
+          adminBadgeEl.textContent = "Modo Visitante"
+          adminBadgeEl.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-surface-2 text-fg-3"
+        }
+      }
+
+      if (adminAuthBtn) {
+        if (isLocked) {
+          adminAuthBtn.classList.add("hidden")
+        } else {
+          adminAuthBtn.classList.remove("hidden")
+          adminAuthBtn.textContent = admin ? "Sair do modo Admin" : "Acesso Administrador"
+        }
+      }
+
+      if (defaultPlaylistNoticeEl) {
+        if (isLocked) {
+          defaultPlaylistNoticeEl.textContent = "✓ Lista padrão do projeto ativa (definida em src/config/default-playlist.json)"
+          defaultPlaylistNoticeEl.classList.remove("hidden")
+        } else {
+          defaultPlaylistNoticeEl.classList.toggle("hidden", !def)
+        }
+      }
+    }
+
+    adminAuthBtn?.addEventListener("click", async () => {
+      const { isAdmin, setAdmin, verifyAdminPassword } = await import("@/scripts/lib/admin-auth.js")
+      if (isAdmin()) {
+        setAdmin(false)
+        await updateAdminUI()
+        await renderPlaylists()
+        toastSuccess("Modo administrador desativado.")
+      } else {
+        const pwd = prompt("Digite a senha de administrador (padrão: admin):")
+        if (pwd === null) return
+        if (verifyAdminPassword(pwd)) {
+          setAdmin(true)
+          await updateAdminUI()
+          await renderPlaylists()
+          toastSuccess("Modo administrador ativado com sucesso!")
+        } else {
+          toastError("Senha incorreta.")
+        }
+      }
+    })
+
+    setDefaultBtn?.addEventListener("click", async () => {
+      const active = await getActiveEntry()
+      if (!active) {
+        toastError("Nenhuma lista ativa para definir como padrão.")
+        return
+      }
+      const { saveDefaultPlaylist } = await import("@/scripts/lib/default-playlist-manager.js")
+      saveDefaultPlaylist(active)
+      await updateAdminUI()
+      toastSuccess(`"${active.title}" definida como lista padrão para todos os visitantes!`, { duration: 5000 })
+    })
+
+    window.addEventListener("xt:admin-changed", async () => {
+      await updateAdminUI()
+      await renderPlaylists()
+    })
+
+    updateAdminUI()
 
     const cacheSizeEl = document.getElementById("settings-cache-size")
     const cacheNewestEl = document.getElementById("settings-cache-newest")

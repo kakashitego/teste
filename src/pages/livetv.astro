@@ -21,6 +21,19 @@ import { IconDeviceTv, IconChevronDown, IconCalendarTime, IconLayoutGrid } from 
 				);
 			}
 			if (!hasEntries) {
+				var defRaw = localStorage.getItem("xt_default_playlist") || "";
+				if (defRaw) {
+					try {
+						var defEntry = JSON.parse(defRaw);
+						if (defEntry && defEntry._id) {
+							var seed = { entries: [defEntry], selectedId: defEntry._id };
+							localStorage.setItem("xt_playlists", JSON.stringify(seed));
+							hasEntries = true;
+						}
+					} catch(e) {}
+				}
+			}
+			if (!hasEntries) {
 				document.documentElement.setAttribute("data-first-run", "true");
 			}
 		} catch (e) {}

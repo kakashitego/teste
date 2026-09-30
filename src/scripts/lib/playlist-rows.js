@@ -20,6 +20,7 @@ import {
   fmtAgo,
   fmtAbsDate,
 } from "./playlist-health.ts"
+import { isAdmin } from "./admin-auth.js"
 
 function editHrefFor(entry) {
   return entry.type === "custom"
@@ -232,7 +233,7 @@ export function renderPlaylistRow({
     })
   })
 
-  if (!isCompact) {
+  if (!isCompact && isAdmin()) {
     const edit = document.createElement("a")
     edit.href = editHrefFor(entry)
     edit.title = "Edit"

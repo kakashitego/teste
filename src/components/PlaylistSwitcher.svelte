@@ -14,6 +14,8 @@
   import { toastSuccess, toastError } from "@/scripts/lib/toast.js"
   import { t } from "@/scripts/lib/i18n.js"
   import { attachPopoverSpatialNav } from "@/scripts/lib/dialog-spatial-nav.js"
+  import { isAdmin } from "@/scripts/lib/admin-auth.js"
+  import { isDefaultPlaylistLocked } from "@/scripts/lib/default-playlist-manager.js"
 
   const SECTION_ID = "ps-popover-section"
 
@@ -24,6 +26,7 @@
   })
 
   let isOpen = $state(false)
+  let isLocked = $state(isDefaultPlaylistLocked())
   // The fallback string is read on `renderHeader()` (mount + every locale
   // change), so the initial sync value here is only visible during the
   // ~one-frame gap before onMount fires. We still seed it with t() so that
@@ -33,6 +36,7 @@
   let activeBadge = $state("-")
   let hasActive = $state(false)
   let isEmojiBadge = $state(false)
+  let adminMode = $state(false)
 
   /** @type {HTMLElement | undefined} */
   let wrapEl
@@ -177,12 +181,18 @@
       if (isOpen) renderList()
     }
 
+    const syncAdmin = () => {
+      adminMode = isAdmin()
+    }
+    syncAdmin()
+
     document.addEventListener("click", onDocClick)
     document.addEventListener("keydown", onDocKey)
     document.addEventListener("xt:active-changed", onActiveChanged)
     document.addEventListener("xt:entries-updated", onEntriesUpdated)
     document.addEventListener("xt:catalog-warmed", onCatalogWarmed)
     document.addEventListener("xt:locale-changed", onActiveChanged)
+    document.addEventListener("xt:admin-changed", syncAdmin)
     return () => {
       document.removeEventListener("click", onDocClick)
       document.removeEventListener("keydown", onDocKey)
@@ -190,6 +200,7 @@
       document.removeEventListener("xt:entries-updated", onEntriesUpdated)
       document.removeEventListener("xt:catalog-warmed", onCatalogWarmed)
       document.removeEventListener("xt:locale-changed", onActiveChanged)
+      document.removeEventListener("xt:admin-changed", syncAdmin)
       spatialNav.teardown()
     }
   })
@@ -252,30 +263,36 @@
       <div data-i18n="common.loading" class="px-3.5 py-3 text-fg-3 text-xs">Loading…</div>
     </div>
 
-    <div class="flex items-stretch border-t border-line shrink-0">
-      {#if hasActive}
-        <button
-          id="ps-refresh"
-          type="button"
-          onclick={onRefresh}
-          class="flex flex-1 min-w-0 items-center justify-center gap-1.5 px-2 py-3 text-sm font-medium text-fg-2 whitespace-nowrap
-            hover:text-fg hover:bg-surface-2
-            focus-visible:text-fg focus-visible:bg-surface-2
-            min-h-11 transition-colors outline-none border-r border-line">
-          <IconRefresh aria-hidden="true" class="h-4 w-4 shrink-0" />
-          <span data-i18n="common.refresh" class="truncate">Refresh</span>
-        </button>
-      {/if}
-      <a
-        href="/login"
-        class="flex flex-1 min-w-0 items-center justify-center gap-1.5 px-2 py-3 text-sm font-medium text-fg whitespace-nowrap
-          hover:bg-surface-2
-          focus-visible:bg-surface-2
-          min-h-11 transition-colors">
-        <IconPlus aria-hidden="true" class="h-4 w-4 text-accent shrink-0" />
-        <span data-i18n="playlist.add" class="truncate">Add playlist</span>
-      </a>
-    </div>
+    {#if hasActive || adminMode}
+      <div class="flex items-stretch border-t border-line shrink-0">
+        {#if hasActive}
+          <button
+            id="ps-refresh"
+            type="button"
+            onclick={onRefresh}
+            class="flex flex-1 min-w-0 items-center justify-center gap-1.5 px-2 py-3 text-sm font-medium text-fg-2 whitespace-nowrap
+              hover:text-fg hover:bg-surface-2
+              focus-visible:text-fg focus-visible:bg-surface-2
+              min-h-11 transition-colors outline-none"
+            class:border-r={adminMode && !isLocked}
+            class:border-line={adminMode && !isLocked}>
+            <IconRefresh aria-hidden="true" class="h-4 w-4 shrink-0" />
+            <span data-i18n="common.refresh" class="truncate">Refresh</span>
+          </button>
+        {/if}
+        {#if adminMode && !isLocked}
+          <a
+            href="/login"
+            class="flex flex-1 min-w-0 items-center justify-center gap-1.5 px-2 py-3 text-sm font-medium text-fg whitespace-nowrap
+              hover:bg-surface-2
+              focus-visible:bg-surface-2
+              min-h-11 transition-colors">
+            <IconPlus aria-hidden="true" class="h-4 w-4 text-accent shrink-0" />
+            <span data-i18n="playlist.add" class="truncate">Add playlist</span>
+          </a>
+        {/if}
+      </div>
+    {/if}
   </div>
 </div>
 
