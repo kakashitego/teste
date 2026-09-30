@@ -258,11 +258,5 @@ function afterSplash(callback: () => void): void {
 }
 
 export function initWhatsNew(): void {
-  afterSplash(() => {
-    setTimeout(() => {
-      maybeShowWhatsNew().catch((error) =>
-        log.error("[whats-new] failed:", error)
-      )
-    }, 400)
-  })
+  // Desativado: não exibir tela de novidades automaticamente ao abrir a página
 }
