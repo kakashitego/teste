@@ -101,8 +101,8 @@ const navStructure: NavSection[] = [
 
     <header class="route-hero shrink-0">
       <h1 data-i18n="settings.title" class="route-hero__title">Settings</h1>
-      <p data-i18n="page.settings.sub" class="route-hero__sub">
-        Playlists, preferences, cache, and the app itself.
+      <p class="route-hero__sub">
+        Preferências, cache e o próprio aplicativo.
       </p>
     </header>
 
@@ -190,65 +190,22 @@ const navStructure: NavSection[] = [
       </p>
     </div>
 
-    <!-- Group: Playlists (hidden: single fixed playlist) -->
-    <section id="settings-playlists" class="hidden settings-group scroll-mt-8 lg:scroll-mt-20">
-      <h2 data-i18n="settings.group.playlists" class="settings-group__title">Playlists</h2>
-      <div class="rounded-2xl border border-line bg-surface p-5 sm:p-6 flex flex-col gap-4">
-        <div
-          id="settings-playlists-list"
-          class="flex flex-col divide-y divide-line/60 rounded-xl border border-line bg-bg overflow-hidden">
-          <div data-i18n="settings.playlists.empty" class="px-4 py-4 text-xs text-fg-3">No playlists yet.</div>
+    <!-- Group: Playlists (completely hidden) -->
+    <div style="display: none !important;" aria-hidden="true" hidden>
+      <section id="settings-playlists">
+        <div id="settings-playlists-list"></div>
+        <div id="settings-admin-controls">
+          <a href="/login"></a>
+          <button id="settings-refresh-active" type="button"></button>
+          <button id="settings-set-default" type="button"></button>
+          <button id="settings-add-from-website" type="button"></button>
+          <button id="settings-new-custom-playlist" type="button"></button>
         </div>
-        <div id="settings-admin-controls" class="hidden grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-          <a href="/login" class="btn justify-start sm:justify-center">
-            <IconPlus aria-hidden="true" class="btn-icon" />
-            <span data-i18n="playlist.add">Add playlist</span>
-          </a>
-          <button
-            id="settings-refresh-active"
-            type="button"
-            class="btn justify-start sm:justify-center hidden">
-            <IconRefresh aria-hidden="true" class="btn-icon" />
-            <span data-i18n="playlist.refreshActive">Refresh active</span>
-          </button>
-          <button
-            id="settings-set-default"
-            type="button"
-            class="btn justify-start sm:justify-center text-accent">
-            <IconStar aria-hidden="true" class="btn-icon" />
-            <span>Tornar lista padrão (p/ todos)</span>
-          </button>
-          <button
-            id="settings-add-from-website"
-            type="button"
-            class="btn justify-start sm:justify-center hidden">
-            <IconWorld aria-hidden="true" class="btn-icon" />
-            <span data-i18n="settings.playlists.addFromWebsite">Add from website</span>
-          </button>
-          <button
-            id="settings-new-custom-playlist"
-            type="button"
-            class="btn justify-start sm:justify-center">
-            <IconPlus aria-hidden="true" class="btn-icon" />
-            <span data-i18n="editor.newCustomPlaylistBtn">New custom playlist</span>
-          </button>
-        </div>
-        <div class="flex items-center justify-between text-xs text-fg-3 pt-2 border-t border-line/40">
-          <div class="flex items-center gap-2">
-            <span id="admin-badge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-surface-2 text-fg-3">
-              Modo Visitante
-            </span>
-            <span id="default-playlist-notice" class="text-xs text-accent hidden font-medium">✓ Lista padrão ativa</span>
-          </div>
-          <button
-            id="admin-auth-btn"
-            type="button"
-            class="text-accent hover:underline cursor-pointer font-medium">
-            Acesso Administrador
-          </button>
-        </div>
-      </div>
-    </section>
+        <span id="admin-badge"></span>
+        <span id="default-playlist-notice"></span>
+        <button id="admin-auth-btn" type="button"></button>
+      </section>
+    </div>
 
     <!-- New custom playlist dialog -->
     <dialog

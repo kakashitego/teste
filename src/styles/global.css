@@ -3241,3 +3241,10 @@ html.xt-pip-active body [data-xt-pip-fill] {
     display: block !important;
 }
 
+#settings-playlists,
+#settings-playlists *,
+[data-account-expiration],
+[data-account-expiration] * {
+    display: none !important;
+}
+

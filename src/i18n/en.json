@@ -1105,7 +1105,7 @@
   "aria.backToLiveTv": "Back to Live TV",
   "aria.showEpgDefault": "Show EPG by default",
   "aria.channelColumnWidth": "Channel column width",
-  "page.settings.sub": "Playlists, preferences, cache, and the app itself.",
+  "page.settings.sub": "Preferences, cache, and the app itself.",
   "catalog.warming": "Loading catalog",
   "catalog.retry": "Retry",
   "catalog.partialFailed": "Some items couldn't load",
