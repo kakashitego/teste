@@ -369,9 +369,8 @@ async function ensureMigrated() {
   if (migrationPromise) return migrationPromise
   migrationPromise = (async () => {
     const existing = await readRaw()
-    if (existing && Array.isArray(existing.entries) && existing.entries.length > 0) return existing
 
-    // Check if there is a preconfigured default playlist on first run
+    // Check if there is a preconfigured default playlist
     try {
       const {
         getDefaultPlaylist,
@@ -381,12 +380,34 @@ async function ensureMigrated() {
       if (isDefaultPlaylistEnabled()) {
         const defaultEntry = getDefaultPlaylist()
         if (defaultEntry) {
-          const seed = { entries: [defaultEntry], selectedId: defaultEntry._id }
-          await writeRaw(seed)
-          return seed
+          if (existing && Array.isArray(existing.entries) && existing.entries.length > 0) {
+            const storedDefault = existing.entries.find((e) => e._id === defaultEntry._id)
+            if (storedDefault) {
+              const storedSig = `${storedDefault.serverUrl || ""}|${storedDefault.username || ""}|${storedDefault.password || ""}|${storedDefault.url || ""}`
+              const newSig = `${defaultEntry.serverUrl || ""}|${defaultEntry.username || ""}|${defaultEntry.password || ""}|${defaultEntry.url || ""}`
+              if (storedSig !== newSig) {
+                const idx = existing.entries.indexOf(storedDefault)
+                existing.entries[idx] = { ...storedDefault, ...defaultEntry }
+                await writeRaw(existing)
+                try {
+                  if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
+                    indexedDB.deleteDatabase("xt_cache")
+                  }
+                } catch {}
+                return existing
+              }
+            }
+            return existing
+          } else {
+            const seed = { entries: [defaultEntry], selectedId: defaultEntry._id }
+            await writeRaw(seed)
+            return seed
+          }
         }
       }
     } catch {}
+
+    if (existing && Array.isArray(existing.entries) && existing.entries.length > 0) return existing
 
     const legacy = await readLegacy()
     const entry = legacyToEntry(legacy)

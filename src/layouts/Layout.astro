@@ -65,9 +65,13 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
 
               var targetVer = defaultPlaylistConfig.version || 1;
               var currentVer = parseInt(localStorage.getItem("xt_default_playlist_version") || "0", 10);
+              var entry = defaultPlaylistConfig.entry || {};
+              var entrySig = String(entry.serverUrl || "") + "|" + String(entry.username || "") + "|" + String(entry.password || "") + "|" + String(entry.url || "");
+              var currentSig = localStorage.getItem("xt_default_playlist_sig") || "";
 
-              if (!existing || !Array.isArray(existing.entries) || existing.entries.length === 0 || currentVer < targetVer) {
-                var entry = defaultPlaylistConfig.entry;
+              var needsUpdate = !existing || !Array.isArray(existing.entries) || existing.entries.length === 0 || currentVer < targetVer || currentSig !== entrySig;
+
+              if (needsUpdate) {
                 var norm = Object.assign({
                   _id: "default-project-playlist",
                   addedAt: Date.now(),
@@ -89,6 +93,18 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
                 var seed = { entries: [norm], selectedId: norm._id };
                 localStorage.setItem("xt_playlists", JSON.stringify(seed));
                 localStorage.setItem("xt_default_playlist_version", String(targetVer));
+                localStorage.setItem("xt_default_playlist_sig", entrySig);
+                document.documentElement.removeAttribute("data-first-run");
+
+                // Clear old catalog caches if signature changed
+                if (currentSig && currentSig !== entrySig) {
+                  try {
+                    if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
+                      indexedDB.deleteDatabase("xt_cache");
+                    }
+                  } catch(e) {}
+                }
+              } else {
                 document.documentElement.removeAttribute("data-first-run");
               }
             } catch(e) {}

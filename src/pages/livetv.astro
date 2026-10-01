@@ -35,6 +35,8 @@ import { IconDeviceTv, IconChevronDown, IconCalendarTime, IconLayoutGrid } from 
 			}
 			if (!hasEntries) {
 				document.documentElement.setAttribute("data-first-run", "true");
+			} else {
+				document.documentElement.removeAttribute("data-first-run");
 			}
 		} catch (e) {}
 	</script>
