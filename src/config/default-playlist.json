@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "lockToDefault": true,
-  "version": 3,
+  "lockToDefault": false,
+  "version": 4,
   "entry": {
     "type": "xtream",
     "title": "Lista",

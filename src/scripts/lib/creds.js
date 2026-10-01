@@ -369,60 +369,24 @@ async function ensureMigrated() {
   if (migrationPromise) return migrationPromise
   migrationPromise = (async () => {
     const existing = await readRaw()
+    if (existing && Array.isArray(existing.entries) && existing.entries.length > 0) return existing
 
-    // Check if there is a preconfigured or admin-set default playlist
+    // Check if there is a preconfigured default playlist on first run
     try {
       const {
         getDefaultPlaylist,
         isDefaultPlaylistEnabled,
-        isDefaultPlaylistLocked,
       } = await import("./default-playlist-manager.js")
 
       if (isDefaultPlaylistEnabled()) {
         const defaultEntry = getDefaultPlaylist()
         if (defaultEntry) {
-          if (isDefaultPlaylistLocked()) {
-            const current = existing?.entries?.find((e) => e._id === defaultEntry._id)
-            const isMatch =
-              current &&
-              current.type === defaultEntry.type &&
-              (current.type === "xtream"
-                ? current.serverUrl === defaultEntry.serverUrl &&
-                  current.username === defaultEntry.username &&
-                  current.password === defaultEntry.password
-                : current.url === defaultEntry.url) &&
-              current.title === defaultEntry.title
-
-            if (
-              !isMatch ||
-              !existing ||
-              !Array.isArray(existing.entries) ||
-              existing.entries.length !== 1 ||
-              existing.selectedId !== defaultEntry._id
-            ) {
-              if (!isMatch) {
-                try {
-                  const { invalidateEntry } = await import("./cache.js")
-                  invalidateEntry(defaultEntry._id)
-                } catch {}
-              }
-              const seed = { entries: [defaultEntry], selectedId: defaultEntry._id }
-              await writeRaw(seed)
-              dispatch(EVT_ENTRIES_UPDATED)
-              dispatch(EVT_ACTIVE_CHANGED, defaultEntry)
-              return seed
-            }
-            return existing
-          } else if (!existing || !Array.isArray(existing.entries) || existing.entries.length === 0) {
-            const seed = { entries: [defaultEntry], selectedId: defaultEntry._id }
-            await writeRaw(seed)
-            return seed
-          }
+          const seed = { entries: [defaultEntry], selectedId: defaultEntry._id }
+          await writeRaw(seed)
+          return seed
         }
       }
     } catch {}
-
-    if (existing && Array.isArray(existing.entries) && existing.entries.length > 0) return existing
 
     const legacy = await readLegacy()
     const entry = legacyToEntry(legacy)
@@ -455,14 +419,6 @@ export async function getActiveEntry() {
 }
 
 export async function addEntry(partial) {
-  try {
-    const { isDefaultPlaylistLocked } = await import("./default-playlist-manager.js")
-    if (isDefaultPlaylistLocked()) {
-      throw new Error("A lista de reprodução deste projeto está bloqueada e não permite adições manuais.")
-    }
-  } catch (err) {
-    if (err && err.message && err.message.includes("bloqueada")) throw err
-  }
   const s = await getState()
   const entry = {
     _id: uuid(),
@@ -528,12 +484,6 @@ export async function selectEntry(id) {
 }
 
 export async function removeEntry(id) {
-  try {
-    const { isDefaultPlaylistLocked } = await import("./default-playlist-manager.js")
-    if (isDefaultPlaylistLocked()) {
-      return
-    }
-  } catch {}
   const s = await getState()
   const removed = s.entries.find((e) => e._id === id)
   const remaining = s.entries.filter((e) => e._id !== id)

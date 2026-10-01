@@ -58,50 +58,37 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
         <script is:inline define:vars={{ defaultPlaylistConfig }}>
           (function() {
             try {
-              var cfg = defaultPlaylistConfig;
-              var entry = cfg.entry;
-              var locked = cfg.lockToDefault === true;
-              if (entry && typeof entry === "object") {
+              if (typeof navigator !== "undefined" && navigator.webdriver) return;
+              var existingRaw = localStorage.getItem("xt_playlists");
+              var existing = null;
+              try { if (existingRaw) existing = JSON.parse(existingRaw); } catch(e) {}
+
+              var targetVer = defaultPlaylistConfig.version || 1;
+              var currentVer = parseInt(localStorage.getItem("xt_default_playlist_version") || "0", 10);
+
+              if (!existing || !Array.isArray(existing.entries) || existing.entries.length === 0 || currentVer < targetVer) {
+                var entry = defaultPlaylistConfig.entry;
                 var norm = Object.assign({
                   _id: "default-project-playlist",
-                  addedAt: 0,
-                  type: entry.type || "m3u",
-                  title: entry.title || "IPTV Playlist"
+                  addedAt: Date.now(),
+                  type: entry.type || "xtream",
+                  title: entry.title || "Lista",
+                  mirrors: [],
+                  liveContainer: "m3u8",
+                  epgUrl: "",
+                  additionalEpgUrls: [],
+                  disableProviderEpg: false
                 }, entry);
+
                 if (norm.type === "xtream") {
                   norm.serverUrl = (norm.serverUrl || "").replace(/\/+$/, "");
                 } else if (norm.type === "m3u") {
                   norm.url = (norm.url || "").trim();
                 }
-                var playlistsRaw = localStorage.getItem("xt_playlists");
-                var playlists = null;
-                try { if (playlistsRaw) playlists = JSON.parse(playlistsRaw); } catch(e) {}
 
-                var shouldSeed = false;
-                if (typeof navigator !== "undefined" && navigator.webdriver) {
-                  shouldSeed = false;
-                } else if (!playlists || !Array.isArray(playlists.entries) || playlists.entries.length === 0) {
-                  shouldSeed = true;
-                } else if (locked) {
-                  var found = playlists.entries.find(function(e) { return e._id === norm._id; });
-                  if (!found || playlists.entries.length !== 1 || playlists.selectedId !== norm._id) {
-                    shouldSeed = true;
-                  } else if (
-                    found.type !== norm.type ||
-                    found.title !== norm.title ||
-                    (norm.type === "m3u"
-                      ? found.url !== norm.url
-                      : (found.serverUrl !== norm.serverUrl || found.username !== norm.username || found.password !== norm.password))
-                  ) {
-                    shouldSeed = true;
-                  }
-                }
-
-                if (shouldSeed) {
-                  var seed = { entries: [norm], selectedId: norm._id };
-                  localStorage.setItem("xt_playlists", JSON.stringify(seed));
-                  localStorage.setItem("xt_default_playlist", JSON.stringify(norm));
-                }
+                var seed = { entries: [norm], selectedId: norm._id };
+                localStorage.setItem("xt_playlists", JSON.stringify(seed));
+                localStorage.setItem("xt_default_playlist_version", String(targetVer));
                 document.documentElement.removeAttribute("data-first-run");
               }
             } catch(e) {}

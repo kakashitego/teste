@@ -43,7 +43,14 @@ export function getDefaultPlaylist() {
   // Ensure normalized entry object
   const normalized = {
     _id: DEFAULT_PLAYLIST_ID,
-    addedAt: 0,
+    addedAt: Date.now(),
+    type: "xtream",
+    title: "Lista",
+    mirrors: [],
+    liveContainer: "m3u8",
+    epgUrl: "",
+    additionalEpgUrls: [],
+    disableProviderEpg: false,
     ...rawEntry,
   }
 
