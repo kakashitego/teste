@@ -1,7 +1,10 @@
 ---
 import TvLayout from "@/layouts/TvLayout.astro"
+return Astro.redirect("/tv");
 ---
 
-<TvLayout pageTitle="Sign in" view="login">
+<script is:inline>
+  window.location.replace("/tv");
+</script>
   <section class="h-full overflow-hidden p-6" data-tv-view-root></section>
 </TvLayout>

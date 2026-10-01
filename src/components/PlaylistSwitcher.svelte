@@ -210,7 +210,7 @@
   bind:this={wrapEl}
   data-ps-wrap
   data-open={isOpen ? "true" : "false"}
-  class="relative [view-transition-name:playlist-switcher]">
+  class="hidden">
   <button
     bind:this={triggerEl}
     id="ps-trigger"

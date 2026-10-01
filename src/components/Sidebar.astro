@@ -16,7 +16,6 @@ import {
   IconLayoutSidebarLeftExpand,
   IconCast,
 } from "@tabler/icons-svelte"
-import PlaylistSwitcher from "@/components/PlaylistSwitcher.svelte"
 
 const path = Astro.url.pathname.replace(/\/$/, "") || "/"
 
@@ -232,9 +231,6 @@ const settingsActive = path === "/settings" || path.startsWith("/settings/")
   </div>
 
   <div class="flex flex-col gap-1 pt-2 border-t border-line">
-    <div class="hidden lg:block">
-      <PlaylistSwitcher client:load />
-    </div>
     <button
       type="button"
       id="sidebar-cast-btn"

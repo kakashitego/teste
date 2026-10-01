@@ -21,7 +21,7 @@ import { IconPlus, IconSparkles, IconUpload } from "@tabler/icons-svelte";
 		Channels, movies, and series will appear here.
 	</p>
 
-	<div class="welcome-actions flex flex-col sm:flex-row gap-2.5 sm:gap-3 sm:justify-center">
+	<div class="hidden welcome-actions flex flex-col sm:flex-row gap-2.5 sm:gap-3 sm:justify-center">
 		<a href="/login" class="btn-primary">
 			<IconPlus aria-hidden="true" class="btn-icon" />
 			<span data-i18n="playlist.addCta">Add a playlist</span>
@@ -32,7 +32,7 @@ import { IconPlus, IconSparkles, IconUpload } from "@tabler/icons-svelte";
 		</a>
 	</div>
 
-	<div class="welcome-restore-row">
+	<div class="hidden welcome-restore-row">
 		<button
 			id="welcome-restore-btn"
 			type="button"

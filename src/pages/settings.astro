@@ -65,7 +65,6 @@ interface NavCard { id: string; labelKey: string; label: string; conditional?: b
 interface NavSection { id: string; labelKey: string; label: string; cards: NavCard[]; danger?: boolean }
 
 const navStructure: NavSection[] = [
-  { id: "settings-playlists", labelKey: "settings.group.playlists", label: "Playlists", cards: [] },
   { id: "settings-appearance", labelKey: "settings.group.appearance", label: "Appearance", cards: [
     { id: "card-display",    labelKey: "settings.section.display",     label: "Display" },
     { id: "card-behavior",   labelKey: "settings.appearance.behavior", label: "Behavior" },
@@ -191,8 +190,8 @@ const navStructure: NavSection[] = [
       </p>
     </div>
 
-    <!-- Group: Playlists -->
-    <section id="settings-playlists" class="settings-group scroll-mt-8 lg:scroll-mt-20">
+    <!-- Group: Playlists (hidden: single fixed playlist) -->
+    <section id="settings-playlists" class="hidden settings-group scroll-mt-8 lg:scroll-mt-20">
       <h2 data-i18n="settings.group.playlists" class="settings-group__title">Playlists</h2>
       <div class="rounded-2xl border border-line bg-surface p-5 sm:p-6 flex flex-col gap-4">
         <div

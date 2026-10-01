@@ -1,9 +1,13 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import { IconArrowLeft, IconChevronDown, IconPlus } from "@tabler/icons-svelte";
+
+return Astro.redirect("/");
 ---
 
-<Layout pageTitle="Add playlist" showVersion={false}>
+<script is:inline>
+  window.location.replace("/");
+</script>
 
 	<main
 		class="mx-auto px-5 sm:px-6 lg:px-8 pb-16 pt-4 lg:pt-6 max-w-480 w-full">

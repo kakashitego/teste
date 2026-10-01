@@ -170,14 +170,6 @@ const view: TvView = {
 
       const rows: SettingsRow[] = []
 
-      rows.push({
-        id: "playlists",
-        icon: ICON_LIST_DETAILS,
-        label: t("tv.settings.playlists"),
-        value: activeEntry?.title || t("list.noPlaylistSelected"),
-        kind: "action",
-        onActivate: () => void openPlaylistsDialog(),
-      })
 
       rows.push({
         id: "theme",
