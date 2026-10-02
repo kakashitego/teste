@@ -1,13 +1,13 @@
 {
   "enabled": true,
   "lockToDefault": false,
-  "version": 11,
+  "version": 12,
   "entry": {
     "type": "xtream",
     "title": "Lista",
-    "serverUrl": "http://tjtor8411.com:80",
-    "username": "Osiel123",
-    "password": "Felicidade321"
+    "serverUrl": "http://209.14.85.39:80",
+    "username": "872730437447",
+    "password": "587407912989"
   },
   "_instrucoes": "Para trocar de lista no futuro, basta alterar os campos acima (serverUrl, username, password ou URL de lista M3U) e alterar a version se quiser forçar atualização imediata para todos os visitantes."
 }
