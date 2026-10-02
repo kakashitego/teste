@@ -4162,7 +4162,10 @@ async function play(streamId, name, reason = "user") {
     !audioProxyBypassSet.has(streamId) &&
     (wantsAudioProxyFix || isAudioTranscodeChannel(activePlaylistId, String(streamId)))
 
-  let mountSrc = src
+  let mountSrc =
+    !isTauri && src && src.startsWith("http://")
+      ? `/api/proxy?url=${encodeURIComponent(src)}`
+      : src
   let mountMime = "application/x-mpegURL"
   let audioProxied = false
   let audioProxySessionId = null

@@ -302,6 +302,12 @@ import {
 		rotators.length = 0;
 	}
 
+	function proxifyImgUrl(u) {
+		if (!u || typeof u !== "string") return u;
+		if (u.startsWith("http://")) return "/api/proxy?url=" + encodeURIComponent(u);
+		return u;
+	}
+
 	function startRotator(el, urls) {
 		if (!el || !urls.length) return;
 		const layers = [document.createElement("img"), document.createElement("img")];
@@ -318,13 +324,13 @@ import {
 		}
 		let idx = 0;
 		let active = 0;
-		layers[active].src = urls[0];
+		layers[active].src = proxifyImgUrl(urls[0]);
 		layers[active].dataset.on = "true";
 		const advance = () => {
 			if (document.hidden) return;
 			idx = (idx + 1) % urls.length;
 			const next = active === 0 ? 1 : 0;
-			layers[next].src = urls[idx];
+			layers[next].src = proxifyImgUrl(urls[idx]);
 			layers[next].dataset.on = "true";
 			delete layers[active].dataset.on;
 			active = next;
@@ -407,7 +413,7 @@ import {
 			layer.loading = "eager";
 			layer.referrerPolicy = "no-referrer";
 			layer.onerror = () => layer.remove();
-			layer.src = lastChannel.logo;
+			layer.src = proxifyImgUrl(lastChannel.logo);
 			layer.dataset.on = "true";
 			liveTileArt.appendChild(layer);
 		}

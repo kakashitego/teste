@@ -28,6 +28,8 @@ import {
   getPlayerReuseInstance,
   getUserAgent,
   EXTERNAL_PLAYER_BACKENDS,
+  getCorsProxy,
+  applyCorsProxy,
 } from "@/scripts/lib/app-settings.js"
 import { bindMonoAudio, noteMonoSourceChange } from "@/scripts/lib/audio-effects.js"
 import { sandboxRuntimeSync } from "@/scripts/lib/sandbox.ts"
@@ -38,6 +40,20 @@ import {
   type PlaybackTelemetry,
   type ResolvedEngine,
 } from "@/scripts/lib/player-telemetry.js"
+
+export function proxifyPlayableUrl(url: string): string {
+  if (!url || typeof url !== "string") return url
+  if (url.startsWith("/api/proxy") || url.startsWith("blob:") || url.startsWith("data:")) {
+    return url
+  }
+  if (typeof window !== "undefined" && !window.__TAURI__ && !window.__TAURI_INTERNALS__) {
+    if (url.startsWith("http://") || (typeof location !== "undefined" && location.protocol === "https:" && url.startsWith("http:"))) {
+      const corsProxy = getCorsProxy()
+      return corsProxy ? applyCorsProxy(url, corsProxy) : `/api/proxy?url=${encodeURIComponent(url)}`
+    }
+  }
+  return url
+}
 
 export type PlayerBackend = "videojs" | "artplayer" | "shaka" | "mpv" | "vlc"
 export type ExternalPlayerKind = "mpv" | "vlc"
@@ -1130,6 +1146,7 @@ interface ActiveHlsRef {
  * rejects the in-flight play(), so re-assert play() once the new source is ready.
  */
 export function setNativeSrc(video: HTMLVideoElement, url: string): void {
+  url = proxifyPlayableUrl(url)
   const replacingSource = !!(video.currentSrc || video.getAttribute("src"))
   video.src = url
   if (!replacingSource) return
@@ -1179,6 +1196,7 @@ function attachHlsToVideo(
   telemetry?: PlaybackTelemetry,
   forceNative = false,
 ): void {
+  url = proxifyPlayableUrl(url)
   const existing = active.get()
   if (existing) {
     try { existing.destroy() } catch {}
@@ -1999,6 +2017,7 @@ async function mountVideoJs(
 
   const wrapped: VjsLikeHandle = {
     src({ src, type, drm, isLive, durationSeconds, timelineOffsetSeconds, subtitles, audio }) {
+      src = proxifyPlayableUrl(src)
       pendingSrc = src
       pendingIsLive = isLive ?? true
       pendingDurationSeconds = durationSeconds
@@ -2454,6 +2473,7 @@ async function mountArtPlayer(videoEl: HTMLVideoElement, options: MountOptions =
 
   const handle: VjsLikeHandle = {
     src({ src, type, drm, isLive, durationSeconds, timelineOffsetSeconds, subtitles, audio, preferNativeHls }) {
+      src = proxifyPlayableUrl(src)
       pendingSrc = src
       pendingPreferNativeHls = !!preferNativeHls
       pendingDrm = drm ?? null
@@ -2841,6 +2861,7 @@ async function mountShaka(videoEl: HTMLVideoElement, options: MountOptions = {})
 
   const handle: VjsLikeHandle = {
     src({ src, type, drm, isLive, durationSeconds, timelineOffsetSeconds, subtitles }) {
+      src = proxifyPlayableUrl(src)
       pendingSrc = src
       pendingDrm = drm ?? null
       pendingIsLive = isLive ?? true

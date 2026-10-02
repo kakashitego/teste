@@ -259,6 +259,22 @@ async function downscaleBlob(originalBlob: Blob, kind: ImgKind): Promise<Blob> {
   }
 }
 
+function safeDisplayImageUrl(rawUrl: string): string {
+  if (!rawUrl || typeof rawUrl !== "string") return rawUrl
+  if (rawUrl.startsWith("/api/proxy") || rawUrl.startsWith("blob:") || rawUrl.startsWith("data:")) {
+    return rawUrl
+  }
+  if (
+    typeof window !== "undefined" &&
+    !window.__TAURI__ &&
+    !window.__TAURI_INTERNALS__ &&
+    rawUrl.startsWith("http://")
+  ) {
+    return `/api/proxy?url=${encodeURIComponent(rawUrl)}`
+  }
+  return rawUrl
+}
+
 // Fetches, downscales and caches `url` without touching any <img>
 async function backgroundFill(cacheKey: string, url: string, kind: ImgKind): Promise<void> {
   try {
@@ -267,7 +283,17 @@ async function backgroundFill(cacheKey: string, url: string, kind: ImgKind): Pro
     const originalBlob = await response.blob()
     const storedBlob = await downscaleBlob(originalBlob, kind)
     await idbPut(cacheKey, { blob: storedBlob, cachedAt: Date.now() })
-    memoAdopt(cacheKey, storedBlob)
+    const objectUrl = memoAdopt(cacheKey, storedBlob)
+    try {
+      if (typeof document !== "undefined") {
+        const activeImgs = document.querySelectorAll<HTMLImageElement>(
+          `img[data-cache-key="${CSS.escape(cacheKey)}"]`
+        )
+        for (const el of activeImgs) {
+          el.src = objectUrl
+        }
+      }
+    } catch {}
   } catch (err) {
     log.warn("[xt:img-cache] background fill failed:", err)
     failedUrls.add(url)
@@ -300,6 +326,7 @@ async function handleVisible(img: HTMLImageElement, url: string, kind: ImgKind):
   if (!img.isConnected) return
   schedulePrune()
   const cacheKey = imgCacheKey(kind, url)
+  img.dataset.cacheKey = cacheKey
   const memoized = memoGet(cacheKey)
   if (memoized) {
     img.src = memoized
@@ -310,7 +337,7 @@ async function handleVisible(img: HTMLImageElement, url: string, kind: ImgKind):
     img.src = memoAdopt(cacheKey, cached.blob)
     return
   }
-  img.src = url
+  img.src = safeDisplayImageUrl(url)
   // WeakRef, not the element: a queued fill can wait out several navigations, and a
   // captured <img> pins the whole detached view it belongs to until the queue drains.
   const imgRef = typeof WeakRef === "function" ? new WeakRef(img) : null
@@ -325,17 +352,18 @@ async function handleVisible(img: HTMLImageElement, url: string, kind: ImgKind):
 /** Fetch (or serve cached) `url`, downscale to `kind`'s bucket, and mount it once visible. */
 export function mountCachedImage(img: HTMLImageElement, url: string, kind: ImgKind): void {
   if (!isCacheableImageUrl(url)) {
-    img.src = url
+    img.src = safeDisplayImageUrl(url)
     return
   }
   const cacheKey = imgCacheKey(kind, url)
+  img.dataset.cacheKey = cacheKey
   const memoized = memoGet(cacheKey)
   if (memoized) {
     img.src = memoized
     return
   }
   if (failedUrls.has(url)) {
-    img.src = url
+    img.src = safeDisplayImageUrl(url)
     return
   }
   const observer = getObserver()

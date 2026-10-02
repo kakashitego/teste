@@ -703,7 +703,17 @@ export function safeHttpUrl(rawUrl) {
     const base =
       typeof location !== "undefined" ? location.href : "http://x/"
     const parsed = new URL(rawUrl, base)
-    return /^https?:$/.test(parsed.protocol) ? parsed.href : ""
+    if (!/^https?:$/.test(parsed.protocol)) return ""
+    if (
+      typeof window !== "undefined" &&
+      !window.__TAURI__ &&
+      !window.__TAURI_INTERNALS__ &&
+      parsed.protocol === "http:" &&
+      !parsed.pathname.endsWith(".php")
+    ) {
+      return `/api/proxy?url=${encodeURIComponent(parsed.href)}`
+    }
+    return parsed.href
   } catch {
     return ""
   }
