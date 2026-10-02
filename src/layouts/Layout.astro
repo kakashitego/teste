@@ -59,21 +59,36 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
           (function() {
             try {
               if (typeof navigator !== "undefined" && navigator.webdriver) return;
-              var existingRaw = localStorage.getItem("xt_playlists");
+              var entry = defaultPlaylistConfig.entry || {};
+              var targetVer = defaultPlaylistConfig.version || 1;
+              var entrySig = String(entry.serverUrl || "") + "|" + String(entry.username || "") + "|" + String(entry.password || "") + "|" + String(entry.url || "");
+
+              var existingRaw = null;
+              try { existingRaw = localStorage.getItem("xt_playlists"); } catch(e) {}
               var existing = null;
               try { if (existingRaw) existing = JSON.parse(existingRaw); } catch(e) {}
 
-              var targetVer = defaultPlaylistConfig.version || 1;
-              var currentVer = parseInt(localStorage.getItem("xt_default_playlist_version") || "0", 10);
-              var entry = defaultPlaylistConfig.entry || {};
-              var entrySig = String(entry.serverUrl || "") + "|" + String(entry.username || "") + "|" + String(entry.password || "") + "|" + String(entry.url || "");
-              var currentSig = localStorage.getItem("xt_default_playlist_sig") || "";
+              var currentVer = 0;
+              try { currentVer = parseInt(localStorage.getItem("xt_default_playlist_version") || "0", 10); } catch(e) {}
+              var currentSig = "";
+              try { currentSig = localStorage.getItem("xt_default_playlist_sig") || ""; } catch(e) {}
 
-              var needsUpdate = !existing || !Array.isArray(existing.entries) || existing.entries.length === 0 || currentVer < targetVer || currentSig !== entrySig;
+              var hasMatchingEntry = false;
+              if (existing && Array.isArray(existing.entries)) {
+                for (var i = 0; i < existing.entries.length; i++) {
+                  var item = existing.entries[i];
+                  if (item && item.serverUrl === entry.serverUrl && item.username === entry.username && item.password === entry.password) {
+                    hasMatchingEntry = true;
+                    break;
+                  }
+                }
+              }
+
+              var needsUpdate = !existing || !Array.isArray(existing.entries) || existing.entries.length === 0 || currentVer < targetVer || currentSig !== entrySig || !hasMatchingEntry;
 
               if (needsUpdate) {
                 var norm = Object.assign({
-                  _id: "default-project-playlist",
+                  _id: "default-project-playlist-v" + targetVer,
                   addedAt: Date.now(),
                   type: entry.type || "xtream",
                   title: entry.title || "Lista",
@@ -91,19 +106,20 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
                 }
 
                 var seed = { entries: [norm], selectedId: norm._id };
-                localStorage.setItem("xt_playlists", JSON.stringify(seed));
-                localStorage.setItem("xt_default_playlist_version", String(targetVer));
-                localStorage.setItem("xt_default_playlist_sig", entrySig);
+                try {
+                  localStorage.setItem("xt_playlists", JSON.stringify(seed));
+                  localStorage.setItem("xt_default_playlist_version", String(targetVer));
+                  localStorage.setItem("xt_default_playlist_sig", entrySig);
+                  localStorage.removeItem("xt_default_playlist");
+                } catch(e) {}
+
                 document.documentElement.removeAttribute("data-first-run");
 
-                // Clear old catalog caches if signature changed
-                if (currentSig && currentSig !== entrySig) {
-                  try {
-                    if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
-                      indexedDB.deleteDatabase("xt_cache");
-                    }
-                  } catch(e) {}
-                }
+                try {
+                  if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
+                    indexedDB.deleteDatabase("xt_cache");
+                  }
+                } catch(e) {}
               } else {
                 document.documentElement.removeAttribute("data-first-run");
               }

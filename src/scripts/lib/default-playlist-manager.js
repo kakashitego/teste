@@ -2,7 +2,7 @@
 import defaultPlaylistConfig from "@/config/default-playlist.json"
 
 const DEFAULT_PLAYLIST_KEY = "xt_default_playlist"
-const DEFAULT_PLAYLIST_ID = "default-project-playlist"
+const DEFAULT_PLAYLIST_ID = "default-project-playlist-v" + (defaultPlaylistConfig?.version || 1)
 
 export function getDefaultPlaylistConfig() {
   return defaultPlaylistConfig || { enabled: false }

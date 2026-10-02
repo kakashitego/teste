@@ -250,36 +250,36 @@ function sanitizeMirrors(mirrors) {
   return out
 }
 
-// ---------------------------------------------------------------------------
-// Raw read/write
-// ---------------------------------------------------------------------------
+let memoryState = null
+
 async function readRaw() {
-  // Try localStorage first - it's synchronous and we mirror everything to it
-  // on every save, so under Tauri this avoids waiting for plugin-store init
-  // (~50-100ms cold) on the first read after navigation. The Tauri store is
-  // still consulted as a fallback for first-run-after-clean-install.
+  if (memoryState) return memoryState
   try {
     const raw =
       localStorage.getItem(STORAGE_KEY) || getCookie(STORAGE_KEY) || ""
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (parsed && typeof parsed === "object") return parsed
+      if (parsed && typeof parsed === "object") {
+        memoryState = parsed
+        return parsed
+      }
     }
   } catch (e) {
-    // Corrupted JSON in localStorage/cookie. We continue to the store
-    // fallback below, but warn so a "my login disappeared" report has
-    // a console grep target.
     log.warn("[xt:creds] stored entries blob is unparseable:", e)
   }
   const store = await getStore()
   if (store) {
     const v = await store.get(STORAGE_KEY)
-    if (v && typeof v === "object") return v
+    if (v && typeof v === "object") {
+      memoryState = v
+      return v
+    }
   }
-  return null
+  return memoryState
 }
 
 async function writeRaw(data) {
+  memoryState = data
   const store = await getStore()
   const json = JSON.stringify(data)
   if (store) {
@@ -368,7 +368,7 @@ let migrationPromise = null
 async function ensureMigrated() {
   if (migrationPromise) return migrationPromise
   migrationPromise = (async () => {
-    const existing = await readRaw()
+    let existing = await readRaw()
 
     // Check if there is a preconfigured default playlist
     try {
@@ -380,32 +380,56 @@ async function ensureMigrated() {
       if (isDefaultPlaylistEnabled()) {
         const defaultEntry = getDefaultPlaylist()
         if (defaultEntry) {
-          if (existing && Array.isArray(existing.entries) && existing.entries.length > 0) {
-            const storedDefault = existing.entries.find((e) => e._id === defaultEntry._id)
-            if (storedDefault) {
-              const storedSig = `${storedDefault.serverUrl || ""}|${storedDefault.username || ""}|${storedDefault.password || ""}|${storedDefault.url || ""}`
-              const newSig = `${defaultEntry.serverUrl || ""}|${defaultEntry.username || ""}|${defaultEntry.password || ""}|${defaultEntry.url || ""}`
-              if (storedSig !== newSig) {
-                const idx = existing.entries.indexOf(storedDefault)
-                existing.entries[idx] = { ...storedDefault, ...defaultEntry }
-                await writeRaw(existing)
-                try {
-                  if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
-                    indexedDB.deleteDatabase("xt_cache")
-                  }
-                } catch {}
-                return existing
-              }
-            }
+          const defaultSig = `${defaultEntry.serverUrl || ""}|${defaultEntry.username || ""}|${defaultEntry.password || ""}|${defaultEntry.url || ""}`
+
+          if (!existing || !Array.isArray(existing.entries) || existing.entries.length === 0) {
+            existing = { entries: [defaultEntry], selectedId: defaultEntry._id }
+            await writeRaw(existing)
             return existing
-          } else {
-            const seed = { entries: [defaultEntry], selectedId: defaultEntry._id }
-            await writeRaw(seed)
-            return seed
           }
+
+          // Search for default entry by ID or server URL match or prefix
+          const defaultIdx = existing.entries.findIndex(
+            (e) =>
+              e._id === defaultEntry._id ||
+              e._id === "default-project-playlist" ||
+              (typeof e._id === "string" && e._id.startsWith("default-project-playlist")) ||
+              e.serverUrl === defaultEntry.serverUrl ||
+              e.serverUrl === "http://up.kiwi"
+          )
+
+          if (defaultIdx !== -1) {
+            const current = existing.entries[defaultIdx]
+            const currentSig = `${current.serverUrl || ""}|${current.username || ""}|${current.password || ""}|${current.url || ""}`
+            if (currentSig !== defaultSig || current.type !== defaultEntry.type || current._id !== defaultEntry._id) {
+              existing.entries[defaultIdx] = { ...current, ...defaultEntry, addedAt: Date.now() }
+              existing.selectedId = defaultEntry._id
+              await writeRaw(existing)
+              try {
+                if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
+                  indexedDB.deleteDatabase("xt_cache")
+                }
+              } catch {}
+              return existing
+            }
+          } else {
+            existing.entries.unshift(defaultEntry)
+            existing.selectedId = defaultEntry._id
+            await writeRaw(existing)
+            return existing
+          }
+
+          if (!existing.selectedId || !existing.entries.some((e) => e._id === existing.selectedId)) {
+            existing.selectedId = defaultEntry._id
+            await writeRaw(existing)
+          }
+
+          return existing
         }
       }
-    } catch {}
+    } catch (e) {
+      log.warn("[xt:creds] default playlist sync error:", e)
+    }
 
     if (existing && Array.isArray(existing.entries) && existing.entries.length > 0) return existing
 
@@ -436,7 +460,7 @@ export async function getEntries() {
 
 export async function getActiveEntry() {
   const s = await getState()
-  return s.entries.find((e) => e._id === s.selectedId) || null
+  return s.entries.find((e) => e._id === s.selectedId) || s.entries[0] || null
 }
 
 export async function addEntry(partial) {

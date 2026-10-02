@@ -2,6 +2,7 @@
 import Layout from "@/layouts/Layout.astro";
 import HubStrips from "@/components/HubStrips.svelte";
 import WelcomeCard from "@/components/WelcomeCard.astro";
+import defaultPlaylistConfig from "@/config/default-playlist.json";
 import {
 	IconDeviceTv,
 	IconMovie,
@@ -10,7 +11,7 @@ import {
 ---
 
 <Layout>
-	<script is:inline>
+	<script is:inline define:vars={{ defaultPlaylistConfig }}>
 		try {
 			var raw = localStorage.getItem("xt_playlists") || "";
 			var hasEntries = false;
@@ -22,18 +23,31 @@ import {
 					parsed.entries.length
 				);
 			}
-			if (!hasEntries) {
-				var defRaw = localStorage.getItem("xt_default_playlist") || "";
-				if (defRaw) {
-					try {
-						var defEntry = JSON.parse(defRaw);
-						if (defEntry && defEntry._id) {
-							var seed = { entries: [defEntry], selectedId: defEntry._id };
-							localStorage.setItem("xt_playlists", JSON.stringify(seed));
-							hasEntries = true;
-						}
-					} catch(e) {}
+			if (!hasEntries && defaultPlaylistConfig?.enabled && defaultPlaylistConfig?.entry) {
+				var entry = defaultPlaylistConfig.entry;
+				var targetVer = defaultPlaylistConfig.version || 1;
+				var norm = Object.assign({
+					_id: "default-project-playlist-v" + targetVer,
+					addedAt: Date.now(),
+					type: entry.type || "xtream",
+					title: entry.title || "Lista",
+					mirrors: [],
+					liveContainer: "m3u8",
+					epgUrl: "",
+					additionalEpgUrls: [],
+					disableProviderEpg: false
+				}, entry);
+				if (norm.type === "xtream") {
+					norm.serverUrl = (norm.serverUrl || "").replace(/\/+$/, "");
+				} else if (norm.type === "m3u") {
+					norm.url = (norm.url || "").trim();
 				}
+				var seed = { entries: [norm], selectedId: norm._id };
+				try {
+					localStorage.setItem("xt_playlists", JSON.stringify(seed));
+					localStorage.setItem("xt_default_playlist_version", String(targetVer));
+				} catch(e) {}
+				hasEntries = true;
 			}
 			if (!hasEntries) {
 				document.documentElement.setAttribute("data-first-run", "true");
