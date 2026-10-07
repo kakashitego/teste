@@ -52,11 +52,13 @@ function handleProxyRequest(req: any, res: any, next: any) {
     }
 
     if (req.method === "POST") {
-      let body = ""
-      req.on("data", (chunk: any) => { body += chunk })
-      req.on("end", () => {
+      res.setHeader("Access-Control-Allow-Origin", "*")
+      res.setHeader("Access-Control-Allow-Headers", "*")
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+      const processPayload = (rawBody: string) => {
         try {
-          const payload = JSON.parse(body || "{}")
+          const payload = JSON.parse(rawBody || "{}")
           const providedPassword = req.headers["x-admin-password"] || payload.password
           if (providedPassword !== "2702") {
             res.statusCode = 401
@@ -72,6 +74,12 @@ function handleProxyRequest(req: any, res: any, next: any) {
             series: Array.isArray(payload.hiddenCategories?.series) ? payload.hiddenCategories.series : (parsed.hiddenCategories?.series || []),
           }
           fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2) + "\n", "utf-8")
+
+          try {
+            const { execSync } = require("node:child_process")
+            execSync(`git add "${configPath}" && git commit -m "chore: atualizar categorias ocultas globais" || true`, { stdio: "ignore" })
+          } catch {}
+
           res.statusCode = 200
           res.setHeader("Content-Type", "application/json")
           res.end(JSON.stringify({ ok: true, hiddenCategories: parsed.hiddenCategories }))
@@ -80,7 +88,23 @@ function handleProxyRequest(req: any, res: any, next: any) {
           res.setHeader("Content-Type", "application/json")
           res.end(JSON.stringify({ ok: false, error: err?.message }))
         }
-      })
+      }
+
+      if (req.body && typeof req.body === "object") {
+        processPayload(JSON.stringify(req.body))
+      } else if (typeof req.body === "string" && req.body.length > 0) {
+        processPayload(req.body)
+      } else {
+        let body = ""
+        req.on("data", (chunk: any) => { body += chunk })
+        req.on("end", () => processPayload(body))
+        req.on("error", (err: any) => {
+          res.statusCode = 500
+          res.setHeader("Content-Type", "application/json")
+          res.end(JSON.stringify({ ok: false, error: err?.message }))
+        })
+        req.resume?.()
+      }
       return
     }
   }

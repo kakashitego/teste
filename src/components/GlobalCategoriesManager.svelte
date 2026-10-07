@@ -8,12 +8,14 @@
   } from "@/scripts/lib/preferences.js"
   import { xtreamApiFetch } from "@/scripts/lib/xtream-api.js"
   import { toastSuccess, toastError } from "@/scripts/lib/toast.ts"
-  import { IconEyeOff, IconSearch, IconX, IconCheck, IconLock, IconEye } from "@tabler/icons-svelte"
+  import { IconEyeOff, IconSearch, IconX, IconCheck, IconLock, IconEye, IconDownload, IconCopy } from "@tabler/icons-svelte"
+  import defaultPlaylistConfig from "@/config/default-playlist.json"
 
   const ADMIN_PASSWORD = "2702"
 
   let isOpen = $state(false)
   let isUnlocked = $state(false)
+  let showExportModal = $state(false)
   let passwordInput = $state("")
   let passwordError = $state("")
   let showPassword = $state(false)
@@ -38,6 +40,7 @@
 
   export async function open() {
     isOpen = true
+    showExportModal = false
     passwordError = ""
     passwordInput = ""
     if (isUnlocked) {
@@ -51,6 +54,7 @@
   export function close() {
     isOpen = false
     isUnlocked = false
+    showExportModal = false
     passwordInput = ""
     passwordError = ""
     document.dispatchEvent(new CustomEvent("xt:admin-locked"))
@@ -76,6 +80,44 @@
     passwordError = ""
     document.dispatchEvent(new CustomEvent("xt:admin-locked"))
     tick().then(() => passwordInputEl?.focus())
+  }
+
+  function generateFullConfig() {
+    const base = JSON.parse(JSON.stringify(defaultPlaylistConfig))
+    base.hiddenCategories = {
+      live: Array.from(hiddenSet.live),
+      vod: Array.from(hiddenSet.vod),
+      series: Array.from(hiddenSet.series),
+    }
+    return JSON.stringify(base, null, 2)
+  }
+
+  function downloadConfigFile() {
+    const content = generateFullConfig()
+    const blob = new Blob([content], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "default-playlist.json"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toastSuccess("Arquivo default-playlist.json baixado!", {
+      description: "Substitua esse arquivo em src/config/default-playlist.json no seu repositório GitHub.",
+    })
+  }
+
+  async function copyJsonConfig() {
+    const content = generateFullConfig()
+    try {
+      await navigator.clipboard.writeText(content)
+      toastSuccess("Configuração JSON copiada!", {
+        description: "Cole no arquivo src/config/default-playlist.json no GitHub.",
+      })
+    } catch {
+      toastError("Não foi possível copiar automaticamente")
+    }
   }
 
   async function loadData() {
@@ -244,26 +286,38 @@
         },
       }
 
-      const res = await fetch("/api/admin/categories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-password": ADMIN_PASSWORD,
-        },
-        body: JSON.stringify(payload),
-      })
+      // 1. Always apply immediately to user preferences and local session
+      setGlobalHiddenCategories(payload.hiddenCategories)
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}))
-        throw new Error(errJson.error || `Erro ao salvar: ${res.statusText}`)
+      // 2. Attempt saving to backend API (Node / Vite proxy)
+      let savedOnServer = false
+      try {
+        const res = await fetch("/api/admin/categories", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-password": ADMIN_PASSWORD,
+          },
+          body: JSON.stringify(payload),
+        })
+
+        if (res.ok) {
+          savedOnServer = true
+        }
+      } catch {
+        // Network or static host environment
       }
 
-      setGlobalHiddenCategories(payload.hiddenCategories)
-      toastSuccess("Categorias globais atualizadas!", {
-        description: "As alterações agora são padrão para todos os visitantes do site.",
-      })
-      isOpen = false
-      isUnlocked = false
+      if (savedOnServer) {
+        toastSuccess("Categorias salvas e atualizadas no projeto!", {
+          description: "O arquivo default-playlist.json foi atualizado com sucesso.",
+        })
+        isOpen = false
+        isUnlocked = false
+      } else {
+        // When running on static hosting without a Node backend (e.g. GitHub Pages)
+        showExportModal = true
+      }
     } catch (e) {
       toastError("Falha ao salvar categorias", { description: e?.message })
     } finally {
@@ -423,7 +477,7 @@
               type="button"
               onclick={lockAdmin}
               title="Bloquear painel de administrador"
-              class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-fg-3 hover:text-fg transition-colors">
+              class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-fg-3 hover:text-fg transition-colors cursor-pointer">
               <IconLock class="size-3.5" />
               <span class="hidden sm:inline">Bloquear</span>
             </button>
@@ -431,7 +485,7 @@
               type="button"
               onclick={close}
               aria-label="Fechar"
-              class="rounded-lg p-1.5 text-fg-3 hover:text-fg hover:bg-surface-2 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-accent">
+              class="rounded-lg p-1.5 text-fg-3 hover:text-fg hover:bg-surface-2 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer">
               <IconX class="size-5" />
             </button>
           </div>
@@ -475,13 +529,13 @@
             <button
               type="button"
               onclick={hideAllFiltered}
-              class="px-2.5 py-1.5 rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-fg font-medium transition-colors">
+              class="px-2.5 py-1.5 rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-fg font-medium transition-colors cursor-pointer">
               Ocultar Filtradas
             </button>
             <button
               type="button"
               onclick={showAllInTab}
-              class="px-2.5 py-1.5 rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-fg-3 hover:text-fg transition-colors">
+              class="px-2.5 py-1.5 rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-fg-3 hover:text-fg transition-colors cursor-pointer">
               Exibir Todas
             </button>
             <span class="ml-2 text-2xs text-fg-3 tabular-nums font-mono">
@@ -543,15 +597,31 @@
         </div>
 
         <!-- Footer -->
-        <div class="flex items-center justify-between px-5 py-4 border-t border-line shrink-0 bg-surface-2/30">
-          <span class="text-xs text-fg-3">
-            As categorias marcadas serão ocultadas globalmente.
-          </span>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 py-4 border-t border-line shrink-0 bg-surface-2/30">
           <div class="flex items-center gap-2">
             <button
               type="button"
+              onclick={downloadConfigFile}
+              title="Baixar default-playlist.json com as categorias ocultas para enviar ao GitHub"
+              class="px-3 py-2 rounded-xl border border-line bg-surface hover:bg-surface-2 text-xs text-fg-2 hover:text-fg font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
+              <IconDownload class="size-4" />
+              <span>Baixar para GitHub</span>
+            </button>
+            <button
+              type="button"
+              onclick={copyJsonConfig}
+              title="Copiar JSON configurado para colar no GitHub"
+              class="px-3 py-2 rounded-xl border border-line bg-surface hover:bg-surface-2 text-xs text-fg-2 hover:text-fg font-medium transition-colors flex items-center gap-1.5 cursor-pointer">
+              <IconCopy class="size-4" />
+              <span>Copiar JSON</span>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-end gap-2">
+            <button
+              type="button"
               onclick={close}
-              class="px-4 py-2 rounded-xl border border-line bg-surface hover:bg-surface-2 text-sm text-fg font-medium transition-colors">
+              class="px-4 py-2 rounded-xl border border-line bg-surface hover:bg-surface-2 text-sm text-fg font-medium transition-colors cursor-pointer">
               Cancelar
             </button>
             <button
@@ -571,5 +641,60 @@
 
       </div>
     {/if}
+  </div>
+{/if}
+
+{#if showExportModal}
+  <!-- Modal para ambiente estático/GitHub Pages -->
+  <div class="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+    <div class="flex flex-col w-full max-w-lg rounded-2xl border border-line bg-surface text-fg p-6 shadow-2xl gap-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <div class="size-10 rounded-xl bg-accent-soft/50 border border-accent/40 flex items-center justify-center text-accent">
+            <IconDownload class="size-5" />
+          </div>
+          <div class="flex flex-col">
+            <h3 class="text-base font-semibold text-fg">Atualizar no GitHub</h3>
+            <span class="text-xs text-green-400">✓ Categorias já ativas neste navegador!</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onclick={() => { showExportModal = false; isOpen = false; isUnlocked = false; }}
+          class="p-1.5 rounded-lg text-fg-3 hover:text-fg hover:bg-surface-2 transition-colors cursor-pointer">
+          <IconX class="size-5" />
+        </button>
+      </div>
+
+      <p class="text-xs text-fg-3 leading-relaxed">
+        Como o site no GitHub é hospedado de forma estática, o navegador do visitante não pode gravar arquivos no GitHub sem autenticação. Para que <strong>todos os visitantes de qualquer lugar</strong> recebam essas categorias ocultas por padrão, basta atualizar o arquivo <code>src/config/default-playlist.json</code> no seu repositório:
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-2 pt-1">
+        <button
+          type="button"
+          onclick={downloadConfigFile}
+          class="flex-1 px-4 py-2.5 rounded-xl bg-accent hover:opacity-90 text-bg text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-opacity">
+          <IconDownload class="size-4" />
+          <span>Baixar default-playlist.json</span>
+        </button>
+        <button
+          type="button"
+          onclick={copyJsonConfig}
+          class="flex-1 px-4 py-2.5 rounded-xl border border-line bg-surface-2 hover:bg-surface-3 text-fg text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition-colors">
+          <IconCopy class="size-4" />
+          <span>Copiar Conteúdo JSON</span>
+        </button>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-line/40">
+        <button
+          type="button"
+          onclick={() => { showExportModal = false; isOpen = false; isUnlocked = false; }}
+          class="px-4 py-1.5 rounded-lg bg-surface hover:bg-surface-2 border border-line text-xs text-fg font-medium cursor-pointer">
+          Concluir
+        </button>
+      </div>
+    </div>
   </div>
 {/if}
