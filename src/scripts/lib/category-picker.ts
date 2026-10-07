@@ -12,6 +12,7 @@ import { toast } from "@/scripts/lib/toast.js"
 import { ICON_X } from "@/scripts/lib/icons.js"
 import {
   getHiddenCategories,
+  getGlobalHiddenCategories,
   setCategoryHidden,
   getAllowedCategories,
   setCategoryAllowed,
@@ -199,6 +200,8 @@ export function mountCategoryPicker(
   }
 
   const categoryPassesFilter = (name: string): boolean => {
+    const globalHidden = getGlobalHiddenCategories(resolvedKind())
+    if (globalHidden.has(name)) return false
     const mode = categoryMode()
     if (mode === "select") {
       const allowed = allowedSet()
@@ -412,11 +415,19 @@ export function mountCategoryPicker(
     const names = sortCategoryNames(Array.from(counts.keys()), categorySortMode())
     const mode = categoryMode()
     const hidden = hiddenSet()
+    const globalHidden = getGlobalHiddenCategories(resolvedKind())
     const allowed = allowedSet()
+
+    // Exclude globally hidden categories completely from picker
+    const nonGlobalNames = names.filter((name) => !globalHidden.has(name))
     const visibleNames =
-      mode === "hide" ? names.filter((name) => !hidden.has(name)) : names
+      mode === "hide" ? nonGlobalNames.filter((name) => !hidden.has(name)) : nonGlobalNames
     const hiddenNames =
-      mode === "hide" ? names.filter((name) => hidden.has(name)) : []
+      mode === "hide" ? nonGlobalNames.filter((name) => hidden.has(name)) : []
+
+    if (activeCat && globalHidden.has(activeCat)) {
+      setActiveCat("", { silent: false })
+    }
 
     const frag = document.createDocumentFragment()
     const pid = opts.getActivePlaylistId()
@@ -840,9 +851,9 @@ export function mountCategoryPicker(
   const onAnyPrefChange = (event: Event): void => {
     const detail = (event as CustomEvent).detail
     if (!detail) return
-    if (detail.playlistId !== opts.getActivePlaylistId()) return
+    if (detail.playlistId && detail.playlistId !== opts.getActivePlaylistId()) return
     const targetKind = resolvedKind()
-    if (detail.kind !== targetKind) return
+    if (detail.kind && detail.kind !== targetKind) return
 
     if (
       event.type === "xt:allowed-categories-changed" &&

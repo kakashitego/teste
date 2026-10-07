@@ -473,26 +473,41 @@ const settingsActive = path === "/settings" || path.startsWith("/settings/")
   import { toastSuccess, toastError } from "@/scripts/lib/toast.js"
   import { t, LOCALE_EVENT } from "@/scripts/lib/i18n.js"
 
+  const SESSION_WARMED_KEY = "xt_catalog_session_warmed"
+
   function onLoginPage() {
     return (
       location.pathname === "/login" ||
       location.pathname.startsWith("/login/")
     )
   }
-  function maybeWarmup() {
+  function maybeWarmup(force = false) {
     if (onLoginPage()) return
+    try {
+      if (!force && sessionStorage.getItem(SESSION_WARMED_KEY) === "1") return
+    } catch {}
     import("@/scripts/lib/catalog.js")
-      .then((m) => m.warmupActive())
+      .then((m) => m.warmupActive(undefined, { force }))
+      .then(() => {
+        try { sessionStorage.setItem(SESSION_WARMED_KEY, "1") } catch {}
+      })
       .catch(() => {})
   }
   document.addEventListener("xt:active-changed", () => {
-    maybeWarmup()
+    try { sessionStorage.removeItem(SESSION_WARMED_KEY) } catch {}
+    maybeWarmup(true)
   })
 
   if (typeof window !== "undefined") {
-    window.requestIdleCallback
-      ? window.requestIdleCallback(maybeWarmup, { timeout: 2000 })
-      : setTimeout(maybeWarmup, 500)
+    let sessionWarmed = false
+    try {
+      sessionWarmed = sessionStorage.getItem(SESSION_WARMED_KEY) === "1"
+    } catch {}
+    if (!sessionWarmed) {
+      window.requestIdleCallback
+        ? window.requestIdleCallback(() => maybeWarmup(false), { timeout: 2000 })
+        : setTimeout(() => maybeWarmup(false), 500)
+    }
   }
 
   const sidebarBadge = document.getElementById("sidebar-downloads-badge")

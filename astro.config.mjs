@@ -9,8 +9,8 @@ const hmrHost = process.env.XTREAM_HMR_HOST
 
 export default defineConfig({
   prefetch: {
-    prefetchAll: true,
-    defaultStrategy: "viewport",
+    prefetchAll: false,
+    defaultStrategy: "hover",
   },
   server: {
     host: "0.0.0.0",
@@ -32,8 +32,8 @@ export default defineConfig({
       chunkSizeWarningLimit: 800,
     },
     optimizeDeps: {
-      include: [
-        "@tauri-apps/api/app",
+      exclude: [
+        "@tauri-apps/api",
         "@tauri-apps/plugin-process",
         "@tauri-apps/plugin-updater",
         "@tauri-apps/plugin-http",
@@ -41,15 +41,6 @@ export default defineConfig({
         "@tauri-apps/plugin-dialog",
         "@tauri-apps/plugin-log",
         "tauri-plugin-android-fs-api",
-        // lazily imported player engines: pre-bundle so first playback never triggers a mid-session re-optimize
-        "hls.js",
-        "mpegts.js",
-        "shaka-player",
-        "shaka-player/dist/shaka-player.ui.js",
-        "video.js",
-        "artplayer",
-        "marked",
-        "dompurify",
       ],
     },
   },

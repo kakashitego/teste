@@ -669,17 +669,32 @@ export async function detectPlayer(
 
 type StreamKind = "hls" | "ts" | "native" | "dash"
 
+export function unwrapProxiedUrl(src: string): string {
+  if (!src) return ""
+  if (src.startsWith("/api/proxy")) {
+    try {
+      const u = new URL(src, "http://localhost:3000")
+      return u.searchParams.get("url") || src
+    } catch {}
+  }
+  return src
+}
+
 function streamKindHint(src: string, type?: string): StreamKind | "unknown" {
-  // URL extension wins: Live TV callers pass a stock
-  // "application/x-mpegURL" MIME regardless of the real container, so
-  // a contradicting extension overrides the MIME.
-  if (/\.m3u8(\?|$)/i.test(src)) return "hls"
-  if (/\.mpd(\?|$)/i.test(src)) return "dash"
-  if (/\.ts(\?|$)/i.test(src)) return "ts"
-  if (/\.(mp4|m4v|mkv|webm|mov|avi|m4a|mp3|aac|flac|ogg)(\?|$)/i.test(src)) return "native"
+  const target = unwrapProxiedUrl(src)
+  if (/\.m3u8(\?|$)/i.test(target) || /\.m3u8(\?|$)/i.test(src)) return "hls"
+  if (/\.mpd(\?|$)/i.test(target) || /\.mpd(\?|$)/i.test(src)) return "dash"
+  if (/\.ts(\?|$)/i.test(target) || /\.ts(\?|$)/i.test(src)) return "ts"
+  if (
+    /\.(mp4|m4v|mkv|webm|mov|avi|m4a|mp3|aac|flac|ogg)(\?|$)/i.test(target) ||
+    /\.(mp4|m4v|mkv|webm|mov|avi|m4a|mp3|aac|flac|ogg)(\?|$)/i.test(src)
+  ) {
+    return "native"
+  }
 
   const mime = (type || "").toLowerCase()
   if (mime.includes("dash+xml")) return "dash"
+  if (mime.includes("mpegurl") || mime.includes("x-mpegurl")) return "hls"
   if (mime === "video/mp2t" || mime === "video/mpeg") return "ts"
   if (mime.startsWith("video/") || mime.startsWith("audio/")) return "native"
   return "unknown"
@@ -696,9 +711,10 @@ const containerProbeCache = new Map<string, StreamKind>()
 // Unambiguous manifest extensions only; .ts and progressive extensions still
 // probe (some panels serve HLS playlists from .ts paths).
 export function manifestKindFromExtension(src: string): StreamKind | null {
+  const target = unwrapProxiedUrl(src)
   let pathname: string
   try {
-    pathname = new URL(src).pathname.toLowerCase()
+    pathname = new URL(target, "http://localhost:3000").pathname.toLowerCase()
   } catch {
     return null
   }
@@ -1236,7 +1252,8 @@ function attachHlsToVideo(
   }
   log.info(`[xt:player] hls transport=hls.js loader=${isTauri ? "tauri-http" : "xhr"}`)
   // Off by default: a manifest's DEFAULT=YES rendition would otherwise render unasked.
-  const hlsConfig: Record<string, unknown> = { enableWorker: true, subtitleDisplay: false }
+  // enableWorker is set to false to prevent cross-origin blob/worker security errors in iframes.
+  const hlsConfig: Record<string, unknown> = { enableWorker: false, subtitleDisplay: false }
   if (isTauri) {
     hlsConfig.loader = createTauriHlsLoaderClass(authorization, authorizedOrigin)
   } else if (authorization) {
@@ -2506,20 +2523,50 @@ async function mountArtPlayer(videoEl: HTMLVideoElement, options: MountOptions =
       // Reset here; loadHlsIntoVideo re-populates it once hls.js attaches.
       hlsSubtitleControl.setSource(null)
       if (hint === "hls") {
-        art.type = "m3u8"
-        art.url = src
+        art.option.type = "m3u8"
+        art.option.url = src
+        loadHlsIntoVideo(art.video, src)
         return
       }
       if (hint === "ts") {
-        art.type = tsSourcesServingHls.has(src) ? "m3u8" : "ts"
-        art.url = src
+        if (tsSourcesServingHls.has(src)) {
+          art.option.type = "m3u8"
+          art.option.url = src
+          loadHlsIntoVideo(art.video, src)
+          return
+        }
+        art.option.type = "ts"
+        art.option.url = src
+        void attachMpegts(
+          art.video,
+          src,
+          pendingIsLive,
+          (detail) => {
+            if (pendingSrc !== src) return
+            activeMpegts = null
+            codecState.errorDetail = detail
+            void recoverFailedArtTs(art.video, src, detail)
+          },
+          (info) => {
+            if (pendingSrc !== src) return
+            codecState.videoCodec = info.videoCodec
+            codecState.audioCodec = info.audioCodec
+          },
+          telemetry,
+        ).then((handle) => {
+          if (pendingSrc !== src) {
+            handle?.destroy()
+            return
+          }
+          activeMpegts = handle
+        })
         return
       }
       if (hint === "native") {
-        art.type = ""
-        // artplayer's default (non-customType) handling sets el.src directly.
+        art.option.type = ""
+        art.option.url = src
         noteMonoSourceChange(art.video ?? null, src)
-        art.url = src
+        setNativeSrc(art.video, src)
         return
       }
       // Unknown - wait for the probe before loading anything so we don't
@@ -2529,9 +2576,34 @@ async function mountArtPlayer(videoEl: HTMLVideoElement, options: MountOptions =
         .then((kind) => {
           if (pendingSrc !== src) return
           pendingUsesCallerSuppliedTracks = kind === "ts" || kind === "native"
-          art.type = kind === "dash" ? "mpd" : kind === "ts" ? "ts" : kind === "native" ? "" : "m3u8"
-          if (kind === "native") noteMonoSourceChange(art.video ?? null, src)
-          art.url = src
+          if (kind === "dash") {
+            loadDashIntoVideo(art.video, src, pendingDrm)
+          } else if (kind === "ts") {
+            art.option.type = "ts"
+            art.option.url = src
+            void attachMpegts(art.video, src, pendingIsLive, (detail) => {
+              if (pendingSrc !== src) return
+              activeMpegts = null
+              codecState.errorDetail = detail
+              void recoverFailedArtTs(art.video, src, detail)
+            }, (info) => {
+              if (pendingSrc !== src) return
+              codecState.videoCodec = info.videoCodec
+              codecState.audioCodec = info.audioCodec
+            }, telemetry).then((handle) => {
+              if (pendingSrc !== src) { handle?.destroy(); return }
+              activeMpegts = handle
+            })
+          } else if (kind === "native") {
+            art.option.type = ""
+            art.option.url = src
+            noteMonoSourceChange(art.video ?? null, src)
+            setNativeSrc(art.video, src)
+          } else {
+            art.option.type = "m3u8"
+            art.option.url = src
+            loadHlsIntoVideo(art.video, src)
+          }
           if (kind === "ts" || kind === "native") audioControl.setSource(pendingAudioSource)
           if ((kind === "ts" || kind === "native") && subtitles) {
             setSubtitleSource(subtitles.sourceUrl, type, subtitles?.mkvSession ?? null)
@@ -2539,12 +2611,23 @@ async function mountArtPlayer(videoEl: HTMLVideoElement, options: MountOptions =
         })
         .catch(() => {
           if (pendingSrc !== src) return
-          art.type = "m3u8"
-          art.url = src
+          art.option.type = "m3u8"
+          art.option.url = src
+          loadHlsIntoVideo(art.video, src)
         })
     },
-    play() {
-      return art.play()
+    async play() {
+      try {
+        return await art.play()
+      } catch (err: any) {
+        if (err?.name === "NotAllowedError") {
+          try {
+            art.muted = true
+            return await art.play()
+          } catch {}
+        }
+        throw err
+      }
     },
     pause() {
       art.pause()

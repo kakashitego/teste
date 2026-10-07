@@ -388,15 +388,36 @@ export async function warmupActive(playlistId, opts = {}) {
       hydrateCache(pid, "vod"),
       hydrateCache(pid, "series"),
     ])
+
+    const SESSION_WARMED_KEY = "xt_catalog_session_warmed"
+    let sessionWarmed = false
+    try {
+      sessionWarmed = sessionStorage.getItem(SESSION_WARMED_KEY) === "1"
+    } catch {}
+
     const allHot =
       !force &&
-      !!getCached(pid, liveKey) &&
-      !!getCached(pid, "vod") &&
-      !!getCached(pid, "series")
+      (sessionWarmed || (
+        !!getCached(pid, liveKey) &&
+        !!getCached(pid, "vod") &&
+        !!getCached(pid, "series")
+      ))
 
     if (!allHot) {
       dispatch(EVT_WARMING_START, { playlistId: pid, kinds: ["live", "vod", "series"] })
     }
+
+    if (sessionWarmed && !force) {
+      // Catalog was already loaded when entering the site; return cached catalogs without refetching
+      try { sessionStorage.setItem(SESSION_WARMED_KEY, "1") } catch {}
+      return {
+        live: getCached(pid, liveKey)?.data || [],
+        vod: getCached(pid, "vod")?.data || [],
+        series: getCached(pid, "series")?.data || [],
+        errors: {},
+      }
+    }
+
     const wrap = (kind, fn) =>
       fn()
         .then((data) => {
@@ -433,6 +454,7 @@ export async function warmupActive(playlistId, opts = {}) {
       ensureUserInfo(creds, pid, { force }).catch(() => null),
     ])
     if (force) await invalidateCustomDependents(pid)
+    try { sessionStorage.setItem(SESSION_WARMED_KEY, "1") } catch {}
     dispatch(EVT_WARMED, { playlistId: pid, errors })
     return { live, vod, series, errors }
   })()

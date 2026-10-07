@@ -22,6 +22,7 @@ import {
   IconLayoutSidebar,
   IconWifi,
   IconFilter,
+  IconLock,
   IconStar,
   IconPencil,
   IconArchive,
@@ -50,6 +51,7 @@ import {
   IconArrowsShuffle,
 } from "@tabler/icons-svelte"
 import HiddenCategoriesEditor from "@/components/HiddenCategoriesEditor.svelte"
+import GlobalCategoriesManager from "@/components/GlobalCategoriesManager.svelte"
 import LocalePicker from "@/components/LocalePicker.svelte"
 import FavoritesReorder from "@/components/FavoritesReorder.svelte"
 import ChannelOverridesEditor from "@/components/ChannelOverridesEditor.svelte"
@@ -1525,12 +1527,31 @@ const navStructure: NavSection[] = [
               </span>
             </span>
             <span data-i18n="settings.categories.helperLong" class="text-xs text-fg-3 block mt-1.5">
-              Per-playlist mute list. Hidden categories are hidden from
-              the picker and the main grid on Live TV, Movies, and Series.
+              Gerencie e oculte categorias indesejadas de Filmes, Séries e TV ao Vivo para todos os visitantes do site.
             </span>
           </summary>
-          <div class="px-5 sm:px-6 pb-5 sm:pb-6 pt-1">
-            <HiddenCategoriesEditor client:load />
+          <div class="px-5 sm:px-6 pb-5 sm:pb-6 pt-1 flex flex-col gap-4">
+            <div class="p-4 rounded-xl border border-accent/40 bg-accent-soft/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div class="flex flex-col gap-1">
+                <span class="text-sm font-semibold text-fg flex items-center gap-1.5">
+                  <span>Ocultação Global de Categorias</span>
+                  <span class="text-3xs px-1.5 py-0.5 rounded bg-accent/20 text-accent font-semibold uppercase tracking-wider">Protegido por Senha</span>
+                </span>
+                <span class="text-xs text-fg-3">Área exclusiva para administradores (requer senha). Escolha em uma tela visual com caixas de seleção quais categorias de Filmes, Séries e TV ao Vivo ficam ocultas para todos os visitantes do site.</span>
+              </div>
+              <button
+                type="button"
+                id="btn-open-global-categories"
+                onclick="document.dispatchEvent(new CustomEvent('xt:open-global-categories-manager'))"
+                class="px-4 py-2 rounded-xl bg-accent hover:opacity-90 text-bg text-xs font-semibold shrink-0 transition-opacity flex items-center gap-1.5 shadow-sm cursor-pointer">
+                <IconLock aria-hidden="true" stroke={2} class="size-4" />
+                <span>Gerenciar Categorias Globais</span>
+              </button>
+            </div>
+            <div>
+              <span class="text-xs font-medium text-fg-3 uppercase tracking-wider block mb-2">Categorias Atualmente Ocultas</span>
+              <HiddenCategoriesEditor client:load />
+            </div>
           </div>
         </details>
 
@@ -1858,6 +1879,8 @@ const navStructure: NavSection[] = [
 
     </div><!-- /page wrap -->
   </main>
+
+  <GlobalCategoriesManager client:load />
 
   <!-- Reset confirmation dialog -->
   <dialog

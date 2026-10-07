@@ -31,6 +31,7 @@ import {
   getLanguageFilter,
   getGroupLanguages,
   getProgress,
+  getGlobalHiddenCategories,
 } from "@/scripts/lib/preferences.js"
 import { mountCategoryPicker, genreLabelForCategory } from "@/scripts/lib/category-picker.ts"
 import { GENRE_CAT_PREFIX, GENRE_INDEX_EVENT, getGenreIndex, ensureGenreBoost } from "@/scripts/lib/genre-index.ts"
@@ -198,13 +199,18 @@ document.addEventListener("xt:progress-changed", (ev) => {
 
 const onMovieFilterChange = (ev: Event) => {
   const detail = /** @type {CustomEvent} */ (ev as any).detail
-  if (!detail || detail.playlistId !== activePlaylistId) return
-  if (detail.kind !== "vod") return
+  if (detail?.playlistId && detail.playlistId !== activePlaylistId) return
+  if (detail?.kind && detail.kind !== "vod") return
   applyFilter()
+  picker.rerender()
 }
 document.addEventListener("xt:hidden-categories-changed", onMovieFilterChange)
 document.addEventListener("xt:allowed-categories-changed", onMovieFilterChange)
 document.addEventListener("xt:category-mode-changed", onMovieFilterChange)
+document.addEventListener("xt:global-hidden-changed", () => {
+  applyFilter()
+  picker.rerender()
+})
 
 // ----------------------------
 // Categories
@@ -636,6 +642,19 @@ function applyFilter() {
     })
   }
 
+  // Always enforce global category exclusion across all views
+  const globalHidden = getGlobalHiddenCategories("vod")
+  if (globalHidden.size > 0) {
+    out = out.filter((m) => {
+      const cat = String(m.category || "").trim()
+      if (cat && globalHidden.has(cat)) return false
+      if (Array.isArray(m.categories) && m.categories.length) {
+        if (m.categories.every((c) => globalHidden.has(String(c || "").trim()))) return false
+      }
+      return true
+    })
+  }
+
   const personTitleIds = personFilter.getTitleIds()
   if (personFilter.isActive() && personTitleIds) {
     out = out.filter((movie) => personTitleIds.has(movie.id))
@@ -727,7 +746,17 @@ function applyFilter() {
   }
 
   filtered = displayGroups
-  const totalGroups = groupingEnabled ? groupingIndex.groupsByKey.size : all.length
+  const visibleAll = globalHidden.size > 0
+    ? all.filter((m) => {
+        const cat = String(m.category || "").trim()
+        if (cat && globalHidden.has(cat)) return false
+        if (Array.isArray(m.categories) && m.categories.length) {
+          if (m.categories.every((c) => globalHidden.has(String(c || "").trim()))) return false
+        }
+        return true
+      })
+    : all
+  const totalGroups = groupingEnabled ? groupingIndex.groupsByKey.size : visibleAll.length
   listStatus.textContent = t("movies.ofMovies", {
     shown: filtered.length.toLocaleString(),
     total: totalGroups.toLocaleString(),
@@ -961,11 +990,16 @@ async function loadMovies() {
 // ----------------------------
 // Boot
 // ----------------------------
-// First-paint skeleton
-if (gridEl && !gridEl.childElementCount) {
+// First-paint skeleton: only on cold site entry, not when switching tabs in an active session
+const SESSION_WARMED_KEY = "xt_catalog_session_warmed"
+const isSessionWarmed = () => {
+  try { return sessionStorage.getItem(SESSION_WARMED_KEY) === "1" } catch { return false }
+}
+
+if (gridEl && !gridEl.childElementCount && !isSessionWarmed()) {
   renderPosterSkeletons(gridEl, posterSkeletonCount())
 }
-if (listStatus && /no playlist selected/i.test(listStatus.textContent || "")) {
+if (listStatus && /no playlist selected/i.test(listStatus.textContent || "") && !isSessionWarmed()) {
   listStatus.textContent = t("common.loading")
 }
 
@@ -996,9 +1030,17 @@ document.addEventListener("xt:catalog-warming-start", () => {
 })
 
 ;(async () => {
-  await initI18n()
+  const i18nPromise = initI18n()
+  const credsPromise = loadCreds()
+  const activePromise = getActiveEntry()
+
+  activePromise.then((active) => {
+    if (active?._id) hydrateCache(active._id, "vod")
+  })
+
+  await i18nPromise
   personFilter.render()
-  creds = await loadCreds()
+  creds = await credsPromise
   if (creds.host && creds.user && creds.pass) {
     loadMovies()
   } else {

@@ -32,6 +32,7 @@ import {
   getChannelOverrides,
   setChannelOverride,
   CHANNEL_OVERRIDES_CHANGED_EVENT,
+  getGlobalHiddenCategories,
 } from "@/scripts/lib/preferences.js"
 import {
   applyChannelOverrides,
@@ -410,13 +411,18 @@ document.addEventListener("xt:recents-changed", (e) => {
 
 const onPickerFilterChange = (e: Event) => {
   const detail = /** @type {CustomEvent} */ (e as any).detail
-  if (!detail || detail.playlistId !== activePlaylistId) return
-  if (detail.kind !== "live") return
+  if (detail?.playlistId && detail.playlistId !== activePlaylistId) return
+  if (detail?.kind && detail.kind !== "live") return
   scheduleApplyFilter()
+  picker.rerender()
 }
 document.addEventListener("xt:hidden-categories-changed", onPickerFilterChange)
 document.addEventListener("xt:allowed-categories-changed", onPickerFilterChange)
 document.addEventListener("xt:category-mode-changed", onPickerFilterChange)
+document.addEventListener("xt:global-hidden-changed", () => {
+  scheduleApplyFilter()
+  picker.rerender()
+})
 
 const STAR_OUTLINE =
   '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17.75l-6.18 3.25 1.18-6.88L2 9.25l6.91-1L12 2l3.09 6.25 6.91 1-5 4.87 1.18 6.88z"/></svg>'
@@ -1399,6 +1405,15 @@ const applyFilter = () => {
       const categories = Array.isArray(ch.categories) && ch.categories.length ? ch.categories : [ch.category || ""]
       if (activeCat && !categories.includes(activeCat)) return false
       return categories.some((category) => picker.categoryPassesFilter(category))
+    })
+  }
+
+  // Always enforce global category exclusion across all views
+  const globalHidden = getGlobalHiddenCategories("live")
+  if (globalHidden.size > 0) {
+    out = out.filter((ch) => {
+      const categories = Array.isArray(ch.categories) && ch.categories.length ? ch.categories : [ch.category || ""]
+      return !categories.every((c) => globalHidden.has(String(c || "").trim()))
     })
   }
 

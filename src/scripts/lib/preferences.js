@@ -10,6 +10,7 @@ import {
   MAX_OVERRIDE_NAME_LENGTH,
 } from "@/scripts/lib/channel-overrides.ts"
 import { log } from "@/scripts/lib/log.js"
+import defaultPlaylistConfig from "@/config/default-playlist.json"
 
 const isTauri =
   typeof window !== "undefined" &&
@@ -1212,15 +1213,71 @@ function hiddenKey(kind) {
   return "hiddenLive"
 }
 
+const STORAGE_GLOBAL_HIDDEN_KEY = "xt_global_hidden_categories"
+let _globalHiddenOverride = null
+
+try {
+  if (typeof localStorage !== "undefined") {
+    const cached = localStorage.getItem(STORAGE_GLOBAL_HIDDEN_KEY)
+    if (cached) _globalHiddenOverride = JSON.parse(cached)
+  }
+} catch {}
+
+if (typeof window !== "undefined") {
+  fetch("/api/admin/categories")
+    .then((r) => r.json())
+    .then((data) => {
+      if (data?.ok && data?.hiddenCategories) {
+        _globalHiddenOverride = data.hiddenCategories
+        try {
+          localStorage.setItem(STORAGE_GLOBAL_HIDDEN_KEY, JSON.stringify(data.hiddenCategories))
+        } catch {}
+        dispatch(EVT_HIDDEN_CHANGED, { kind: "live", global: true })
+        dispatch(EVT_HIDDEN_CHANGED, { kind: "vod", global: true })
+        dispatch(EVT_HIDDEN_CHANGED, { kind: "series", global: true })
+        document.dispatchEvent(new CustomEvent("xt:global-hidden-changed", { detail: data.hiddenCategories }))
+      }
+    })
+    .catch(() => {})
+}
+
+export function getGlobalHiddenCategories(kind) {
+  const targetKind = kind === "epg" ? "live" : kind
+  const cfg = _globalHiddenOverride || defaultPlaylistConfig?.hiddenCategories
+  if (!cfg || !Array.isArray(cfg[targetKind])) return new Set()
+  return new Set(cfg[targetKind].map(String))
+}
+
+export function setGlobalHiddenCategories(categoriesMap) {
+  _globalHiddenOverride = categoriesMap
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_GLOBAL_HIDDEN_KEY, JSON.stringify(categoriesMap))
+    }
+  } catch {}
+  dispatch(EVT_HIDDEN_CHANGED, { kind: "live", global: true })
+  dispatch(EVT_HIDDEN_CHANGED, { kind: "vod", global: true })
+  dispatch(EVT_HIDDEN_CHANGED, { kind: "series", global: true })
+  if (typeof document !== "undefined") {
+    document.dispatchEvent(new CustomEvent("xt:global-hidden-changed", { detail: categoriesMap }))
+  }
+}
+
 /** @param {string} playlistId @param {"live"|"vod"|"series"|"epg"} kind */
 export function getHiddenCategories(playlistId, kind) {
   const e = cache.get(playlistId)
-  return e ? e[hiddenKey(kind)] : new Set()
+  const userSet = e ? e[hiddenKey(kind)] : new Set()
+  const globalSet = getGlobalHiddenCategories(kind)
+  if (!globalSet.size) return userSet
+  if (!userSet.size) return globalSet
+  return new Set([...userSet, ...globalSet])
 }
 
 /** @param {string} playlistId @param {"live"|"vod"|"series"|"epg"} kind @param {string|number} categoryId */
 export function isCategoryHidden(playlistId, kind, categoryId) {
   if (categoryId == null) return false
+  const globalSet = getGlobalHiddenCategories(kind)
+  if (globalSet.has(String(categoryId))) return true
   const e = cache.get(playlistId)
   return !!e && e[hiddenKey(kind)].has(String(categoryId))
 }

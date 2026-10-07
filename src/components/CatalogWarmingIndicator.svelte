@@ -33,6 +33,9 @@
   let _doneSeen = false
 
   function start() {
+    try {
+      if (sessionStorage.getItem("xt_catalog_session_warmed") === "1") return
+    } catch {}
     _doneSeen = false
     kinds = { live: "pending", vod: "pending", series: "pending" }
     counts = { live: 0, vod: 0, series: 0 }
@@ -98,6 +101,9 @@
     // so ignore firings until every kind has actually left the "pending" state.
     if (!allDone) return
     _doneSeen = true
+    try {
+      sessionStorage.setItem("xt_catalog_session_warmed", "1")
+    } catch {}
     if (_stripTimer) {
       clearTimeout(_stripTimer)
       _stripTimer = null

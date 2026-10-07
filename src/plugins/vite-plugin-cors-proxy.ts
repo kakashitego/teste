@@ -1,5 +1,7 @@
 import type { Plugin } from "vite"
 import { Readable } from "node:stream"
+import fs from "node:fs"
+import path from "node:path"
 
 let lastHlsHost = "http://38.246.34.131:8080"
 
@@ -32,6 +34,57 @@ function rewriteM3u8(content: string, baseUrl: string): string {
 }
 
 function handleProxyRequest(req: any, res: any, next: any) {
+  if (req.url?.startsWith("/api/admin/categories")) {
+    const configPath = path.resolve(process.cwd(), "src/config/default-playlist.json")
+    if (req.method === "GET") {
+      try {
+        const raw = fs.readFileSync(configPath, "utf-8")
+        const parsed = JSON.parse(raw)
+        res.statusCode = 200
+        res.setHeader("Content-Type", "application/json")
+        res.end(JSON.stringify({ ok: true, hiddenCategories: parsed.hiddenCategories || { live: [], vod: [], series: [] } }))
+      } catch (err: any) {
+        res.statusCode = 500
+        res.setHeader("Content-Type", "application/json")
+        res.end(JSON.stringify({ ok: false, error: err?.message }))
+      }
+      return
+    }
+
+    if (req.method === "POST") {
+      let body = ""
+      req.on("data", (chunk: any) => { body += chunk })
+      req.on("end", () => {
+        try {
+          const payload = JSON.parse(body || "{}")
+          const providedPassword = req.headers["x-admin-password"] || payload.password
+          if (providedPassword !== "2702") {
+            res.statusCode = 401
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ ok: false, error: "Senha de administrador incorreta" }))
+            return
+          }
+          const raw = fs.readFileSync(configPath, "utf-8")
+          const parsed = JSON.parse(raw)
+          parsed.hiddenCategories = {
+            live: Array.isArray(payload.hiddenCategories?.live) ? payload.hiddenCategories.live : (parsed.hiddenCategories?.live || []),
+            vod: Array.isArray(payload.hiddenCategories?.vod) ? payload.hiddenCategories.vod : (parsed.hiddenCategories?.vod || []),
+            series: Array.isArray(payload.hiddenCategories?.series) ? payload.hiddenCategories.series : (parsed.hiddenCategories?.series || []),
+          }
+          fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2) + "\n", "utf-8")
+          res.statusCode = 200
+          res.setHeader("Content-Type", "application/json")
+          res.end(JSON.stringify({ ok: true, hiddenCategories: parsed.hiddenCategories }))
+        } catch (err: any) {
+          res.statusCode = 500
+          res.setHeader("Content-Type", "application/json")
+          res.end(JSON.stringify({ ok: false, error: err?.message }))
+        }
+      })
+      return
+    }
+  }
+
   let target: string | null = null
 
   if (req.url?.startsWith("/api/proxy")) {
