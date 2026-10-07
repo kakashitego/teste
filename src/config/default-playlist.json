@@ -1,22 +1,17 @@
 {
   "enabled": true,
   "lockToDefault": false,
-  "version": 8,
+  "version": 9,
   "entry": {
     "type": "xtream",
     "title": "Lista",
-    "serverUrl": "http://up.kiwi/",
-    "username": "351921603109",
-    "password": "34939156"
+    "serverUrl": "http://prews.xyz:80",
+    "username": "nilzario",
+    "password": "nilza7292747@"
   },
   "hiddenCategories": {
-    "live": [
-      "CANAL 🌶️ ONLYFANS - ADULTOS",
-      "CANAL 🌶️ ADULTOS"
-    ],
-    "vod": [
-      "ADULTOS | XXX"
-    ],
+    "live": [],
+    "vod": [],
     "series": []
   },
   "_instrucoes": "Para trocar de lista no futuro, basta alterar os campos acima (serverUrl, username, password ou URL de lista M3U) e alterar a version se quiser forçar atualização imediata para todos os visitantes."
