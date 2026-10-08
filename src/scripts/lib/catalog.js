@@ -444,15 +444,11 @@ export async function warmupActive(playlistId, opts = {}) {
           }
           return []
         })
-    const [live, vod, series] = await Promise.all([
-      wrap("live", () => ensureLive(creds, pid, { force })),
-      wrap("vod", () => ensureVod(creds, pid, { force })),
-      wrap("series", () => ensureSeries(creds, pid, { force })),
-      // user_info comes alongside the catalog so download-concurrency caps
-      // and the expiration banner are populated without waiting for /settings.
-      // Failure is ignored - M3U sources won't have a player_api endpoint.
-      ensureUserInfo(creds, pid, { force }).catch(() => null),
-    ])
+    // Sequential warmup to prevent browser freezing and IPTV connection throttling
+    const live = await wrap("live", () => ensureLive(creds, pid, { force }))
+    const vod = await wrap("vod", () => ensureVod(creds, pid, { force }))
+    const series = await wrap("series", () => ensureSeries(creds, pid, { force }))
+    await ensureUserInfo(creds, pid, { force }).catch(() => null)
     if (force) await invalidateCustomDependents(pid)
     try { sessionStorage.setItem(SESSION_WARMED_KEY, "1") } catch {}
     dispatch(EVT_WARMED, { playlistId: pid, errors })

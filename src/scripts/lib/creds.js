@@ -708,9 +708,11 @@ export function safeHttpUrl(rawUrl) {
       typeof window !== "undefined" &&
       !window.__TAURI__ &&
       !window.__TAURI_INTERNALS__ &&
-      parsed.protocol === "http:" &&
-      !parsed.pathname.endsWith(".php")
+      (parsed.protocol === "http:" || (typeof location !== "undefined" && location.protocol === "https:" && parsed.protocol === "http:"))
     ) {
+      if (parsed.pathname.endsWith("player_api.php")) {
+        return parsed.href
+      }
       return `/api/proxy?url=${encodeURIComponent(parsed.href)}`
     }
     return parsed.href

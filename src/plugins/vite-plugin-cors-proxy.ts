@@ -2,6 +2,11 @@ import type { Plugin } from "vite"
 import { Readable } from "node:stream"
 import fs from "node:fs"
 import path from "node:path"
+import { Agent, setGlobalDispatcher } from "undici"
+
+try {
+  setGlobalDispatcher(new Agent({ connect: { rejectUnauthorized: false } }))
+} catch {}
 
 let lastHlsHost = "http://38.246.34.131:8080"
 

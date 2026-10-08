@@ -350,7 +350,7 @@ async function ensureSeriesCategoryMap() {
 // ----------------------------
 // Poster grid
 // ----------------------------
-const PAGE_SIZE = typeof window !== "undefined" && window.innerWidth < 768 ? 60 : 200
+const PAGE_SIZE = typeof window !== "undefined" && window.innerWidth < 768 ? 36 : 60
 const AUTO_LOAD_CAP = 1500
 /** @type {IntersectionObserver|null} */
 let infiniteObs = null
@@ -1115,6 +1115,7 @@ async function fetchSeriesRows() {
         added,
         norm: normalize(`${name} ${category} ${year}`),
         tmdb,
+        genre: String(series.genre || "").trim(),
       }
     })
     .filter((series) => series.id && series.name)
