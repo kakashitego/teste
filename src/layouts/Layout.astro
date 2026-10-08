@@ -61,7 +61,9 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
               if (typeof navigator !== "undefined" && navigator.webdriver) return;
               var entry = defaultPlaylistConfig.entry || {};
               var targetVer = defaultPlaylistConfig.version || 1;
-              var entrySig = String(entry.serverUrl || "") + "|" + String(entry.username || "") + "|" + String(entry.password || "") + "|" + String(entry.url || "");
+              var cleanServerUrl = String(entry.serverUrl || "").trim().replace(/\/+$/, "");
+              var cleanUrl = String(entry.url || "").trim();
+              var entrySig = cleanServerUrl + "|" + String(entry.username || "").trim() + "|" + String(entry.password || "").trim() + "|" + cleanUrl;
 
               var existingRaw = null;
               try { existingRaw = localStorage.getItem("xt_playlists"); } catch(e) {}
@@ -77,14 +79,18 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
               if (existing && Array.isArray(existing.entries)) {
                 for (var i = 0; i < existing.entries.length; i++) {
                   var item = existing.entries[i];
-                  if (item && item.serverUrl === entry.serverUrl && item.username === entry.username && item.password === entry.password) {
-                    hasMatchingEntry = true;
-                    break;
+                  if (item) {
+                    var itemServer = String(item.serverUrl || "").trim().replace(/\/+$/, "");
+                    if (itemServer === cleanServerUrl && String(item.username || "") === String(entry.username || "") && String(item.password || "") === String(entry.password || "")) {
+                      hasMatchingEntry = true;
+                      break;
+                    }
                   }
                 }
               }
 
-              var needsUpdate = !existing || !Array.isArray(existing.entries) || existing.entries.length === 0 || currentVer < targetVer || currentSig !== entrySig || !hasMatchingEntry;
+              var isNewCreds = currentSig !== "" && currentSig !== entrySig;
+              var needsUpdate = !existing || !Array.isArray(existing.entries) || existing.entries.length === 0 || currentVer < targetVer || !hasMatchingEntry;
 
               if (needsUpdate) {
                 var norm = Object.assign({
@@ -100,9 +106,9 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
                 }, entry);
 
                 if (norm.type === "xtream") {
-                  norm.serverUrl = (norm.serverUrl || "").replace(/\/+$/, "");
+                  norm.serverUrl = cleanServerUrl;
                 } else if (norm.type === "m3u") {
-                  norm.url = (norm.url || "").trim();
+                  norm.url = cleanUrl;
                 }
 
                 var seed = { entries: [norm], selectedId: norm._id };
@@ -115,11 +121,14 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
 
                 document.documentElement.removeAttribute("data-first-run");
 
-                try {
-                  if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
-                    indexedDB.deleteDatabase("xt_cache");
-                  }
-                } catch(e) {}
+                // Only wipe catalog cache if the playlist credentials actually changed!
+                if (isNewCreds) {
+                  try {
+                    if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
+                      indexedDB.deleteDatabase("xt_cache");
+                    }
+                  } catch(e) {}
+                }
               } else {
                 document.documentElement.removeAttribute("data-first-run");
               }

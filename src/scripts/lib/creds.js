@@ -380,7 +380,8 @@ async function ensureMigrated() {
       if (isDefaultPlaylistEnabled()) {
         const defaultEntry = getDefaultPlaylist()
         if (defaultEntry) {
-          const defaultSig = `${defaultEntry.serverUrl || ""}|${defaultEntry.username || ""}|${defaultEntry.password || ""}|${defaultEntry.url || ""}`
+          const normServer = (u) => String(u || "").trim().replace(/\/+$/, "")
+          const defaultSig = `${normServer(defaultEntry.serverUrl)}|${defaultEntry.username || ""}|${defaultEntry.password || ""}|${defaultEntry.url || ""}`
 
           if (!existing || !Array.isArray(existing.entries) || existing.entries.length === 0) {
             existing = { entries: [defaultEntry], selectedId: defaultEntry._id }
@@ -394,22 +395,24 @@ async function ensureMigrated() {
               e._id === defaultEntry._id ||
               e._id === "default-project-playlist" ||
               (typeof e._id === "string" && e._id.startsWith("default-project-playlist")) ||
-              e.serverUrl === defaultEntry.serverUrl ||
-              e.serverUrl === "http://up.kiwi"
+              normServer(e.serverUrl) === normServer(defaultEntry.serverUrl)
           )
 
           if (defaultIdx !== -1) {
             const current = existing.entries[defaultIdx]
-            const currentSig = `${current.serverUrl || ""}|${current.username || ""}|${current.password || ""}|${current.url || ""}`
-            if (currentSig !== defaultSig || current.type !== defaultEntry.type || current._id !== defaultEntry._id) {
+            const currentSig = `${normServer(current.serverUrl)}|${current.username || ""}|${current.password || ""}|${current.url || ""}`
+            const credsChanged = currentSig !== defaultSig || current.type !== defaultEntry.type
+            if (credsChanged || current._id !== defaultEntry._id) {
               existing.entries[defaultIdx] = { ...current, ...defaultEntry, addedAt: Date.now() }
               existing.selectedId = defaultEntry._id
               await writeRaw(existing)
-              try {
-                if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
-                  indexedDB.deleteDatabase("xt_cache")
-                }
-              } catch {}
+              if (credsChanged) {
+                try {
+                  if (typeof indexedDB !== "undefined" && indexedDB.deleteDatabase) {
+                    indexedDB.deleteDatabase("xt_cache")
+                  }
+                } catch {}
+              }
               return existing
             }
           } else {
