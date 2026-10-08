@@ -1,13 +1,13 @@
 {
   "enabled": true,
   "lockToDefault": false,
-  "version": 10,
+  "version": 11,
   "entry": {
     "type": "xtream",
     "title": "Lista",
-    "serverUrl": "http://up.kiwi",
-    "username": "351921603109",
-    "password": "34939156"
+    "serverUrl": "http://prews.xyz:80",
+    "username": "nilzario",
+    "password": "nilza7292747@"
   },
   "hiddenCategories": {
     "live": [
