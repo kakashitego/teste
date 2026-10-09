@@ -134,10 +134,10 @@ function handleProxyRequest(req: any, res: any, next: any) {
   }
 
   if (req.method === "OPTIONS") {
-    res.statusCode = 204
     res.setHeader("Access-Control-Allow-Origin", "*")
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
     res.setHeader("Access-Control-Allow-Headers", "*")
+    res.setHeader("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length, Content-Type")
     res.setHeader("Access-Control-Max-Age", "86400")
     res.end()
     return
@@ -182,6 +182,7 @@ function handleProxyRequest(req: any, res: any, next: any) {
           res.setHeader("Access-Control-Allow-Origin", "*")
           res.setHeader("Access-Control-Allow-Headers", "*")
           res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
+          res.setHeader("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length, Content-Type")
           res.setHeader("Content-Type", "application/vnd.apple.mpegurl")
           res.setHeader("Content-Length", Buffer.byteLength(rewritten, "utf-8"))
           res.end(rewritten)
@@ -193,6 +194,7 @@ function handleProxyRequest(req: any, res: any, next: any) {
       res.setHeader("Access-Control-Allow-Origin", "*")
       res.setHeader("Access-Control-Allow-Headers", "*")
       res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
+      res.setHeader("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length, Content-Type")
 
       const hasEncoding = upstream.headers.has("content-encoding")
       upstream.headers.forEach((val, key) => {
@@ -209,6 +211,10 @@ function handleProxyRequest(req: any, res: any, next: any) {
         } catch {}
       })
 
+      if (!res.getHeader("accept-ranges")) {
+        res.setHeader("Accept-Ranges", "bytes")
+      }
+
       if (req.method === "HEAD" || !upstream.body) {
         res.end()
         return
@@ -220,6 +226,7 @@ function handleProxyRequest(req: any, res: any, next: any) {
       res.statusCode = 502
       res.setHeader("Content-Type", "text/plain")
       res.setHeader("Access-Control-Allow-Origin", "*")
+      res.setHeader("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length, Content-Type")
       res.end(err?.message || "Proxy upstream error")
     }
   })()

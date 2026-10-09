@@ -217,13 +217,30 @@ export async function mountVodPlayback(options: VodMountOptions): Promise<void> 
   })
 
   if (options.resumePos > 0 && !remuxOwnsInitialMount) {
-    mountedPlayer.one?.("loadedmetadata", () => {
-      if (options.isStale()) return
+    let seekApplied = false
+    const applyResumeSeek = () => {
+      if (seekApplied || options.isStale()) return
       const dur = mountedPlayer.duration?.() || options.savedProgress?.duration || 0
       if (dur === 0 || options.resumePos / dur < 0.95) {
-        try { mountedPlayer.currentTime?.(options.resumePos) } catch {}
+        try {
+          mountedPlayer.currentTime?.(options.resumePos)
+          const current = mountedPlayer.currentTime?.() || 0
+          if (Math.abs(current - options.resumePos) < 2) {
+            seekApplied = true
+          }
+        } catch {}
+      }
+    }
+
+    mountedPlayer.one?.("loadedmetadata", () => {
+      applyResumeSeek()
+      // On iOS Safari / mobile WebKit, loadedmetadata may fire before media frames can seek
+      if (!seekApplied) {
+        mountedPlayer.one?.("canplay", applyResumeSeek)
+        mountedPlayer.one?.("loadeddata", applyResumeSeek)
       }
     })
+    mountedPlayer.one?.("canplay", applyResumeSeek)
   }
 
   // A local .mkv rides the same tee proxy, fed from its on-disk path since ffmpeg only speaks http/pipe/tcp.
