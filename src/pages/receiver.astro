@@ -47,6 +47,16 @@ import ReceiverLayout from "@/layouts/ReceiverLayout.astro"
 					<p data-i18n="receiver.idle.hint" class="mt-4 max-w-[18rem] text-[0.5rem] lg:text-[0.5625rem] text-fg-2">
 						On your phone or computer, choose Play on TV, then add this device with the address and code above.
 					</p>
+
+					<div class="mt-5 flex flex-col items-center gap-1.5">
+						<button
+							id="receiver-open-app"
+							type="button"
+							class="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-2.5 text-sm sm:text-base font-bold text-white shadow-lg transition-transform hover:scale-105 active:scale-95 focus:ring-2 focus:ring-accent cursor-pointer">
+							📺 Abrir Aplicativo na TV
+						</button>
+						<span class="text-[0.6875rem] text-fg-3">Navegue e assista canais, filmes e séries diretamente nesta TV</span>
+					</div>
 				</div>
 			</div>
 
@@ -55,7 +65,7 @@ import ReceiverLayout from "@/layouts/ReceiverLayout.astro"
 					id="receiver-exit"
 					type="button"
 					data-i18n="receiver.idle.exit"
-					class="inline-flex min-h-5.5 items-center rounded-md px-1.5 py-1 text-[0.4375rem] text-fg-3 transition-colors hover:bg-surface hover:text-fg">Exit receiver</button>
+					class="inline-flex min-h-7 items-center rounded-md px-3 py-1.5 text-xs text-fg-2 bg-surface border border-line hover:bg-surface-2 transition-colors">Exit receiver (Sair)</button>
 
 				<div class="ml-auto flex items-center gap-1.5 rounded-lg border border-line bg-surface p-1.25 text-left">
 					<div class="shrink-0 rounded-md bg-white p-1">

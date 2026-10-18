@@ -241,25 +241,16 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
         if (perfStored === "1") {
           document.documentElement.setAttribute("data-perf-mode", "on");
         }
-        if (receiverStored === null && isTvDevice) {
-          localStorage.setItem("xt_receiver_mode", "1");
-          localStorage.setItem("xt_receiver_mode_auto", "1");
-        }
-        if (receiverBootStored === null && isTvDevice) {
-          localStorage.setItem("xt_receiver_boot", "1");
-          localStorage.setItem("xt_receiver_boot_auto", "1");
-        }
-
-        // Boot straight into the receiver screen when enabled, unless the user exited it this session
+        // Clean up any automatic receiver lock-in on Smart TVs
         try {
           if (
-            localStorage.getItem("xt_receiver_mode") === "1" &&
-            localStorage.getItem("xt_receiver_boot") === "1" &&
-            sessionStorage.getItem("xt_receiver_exited") !== "1" &&
-            location.pathname !== "/receiver"
+            localStorage.getItem("xt_receiver_boot_auto") === "1" ||
+            localStorage.getItem("xt_receiver_mode_auto") === "1"
           ) {
-            window.__xtReceiverBooting = true;
-            location.replace("/receiver");
+            localStorage.removeItem("xt_receiver_boot");
+            localStorage.removeItem("xt_receiver_boot_auto");
+            localStorage.removeItem("xt_receiver_mode");
+            localStorage.removeItem("xt_receiver_mode_auto");
           }
         } catch (e) {}
 

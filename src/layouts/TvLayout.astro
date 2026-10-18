@@ -107,12 +107,13 @@ const navItems = [
 
         try {
           if (
-            localStorage.getItem("xt_receiver_mode") === "1" &&
-            localStorage.getItem("xt_receiver_boot") === "1" &&
-            sessionStorage.getItem("xt_receiver_exited") !== "1"
+            localStorage.getItem("xt_receiver_boot_auto") === "1" ||
+            localStorage.getItem("xt_receiver_mode_auto") === "1"
           ) {
-            location.replace("/receiver")
-            return
+            localStorage.removeItem("xt_receiver_boot");
+            localStorage.removeItem("xt_receiver_boot_auto");
+            localStorage.removeItem("xt_receiver_mode");
+            localStorage.removeItem("xt_receiver_mode_auto");
           }
         } catch (e) {}
 

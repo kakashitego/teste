@@ -495,8 +495,13 @@ function exitReceiver(): void {
   // The native engine plays in a separate activity that outlives this page.
   activeEngine?.teardown()
   activeEngine = null
-  // Server keeps running in the background; only auto-boot-in is suppressed.
-  try { sessionStorage.setItem("xt_receiver_exited", "1") } catch {}
+  // Server keeps running in the background; release auto-boot so next load stays in the app
+  try {
+    localStorage.removeItem("xt_receiver_boot")
+    localStorage.removeItem("xt_receiver_boot_auto")
+    localStorage.removeItem("xt_receiver_mode_auto")
+    sessionStorage.setItem("xt_receiver_exited", "1")
+  } catch {}
   window.location.href = isTvDevice() ? "/tv" : "/"
 }
 
@@ -504,6 +509,8 @@ window.addEventListener("pagehide", () => {
   setKeepScreenOn(false)
   setReceiverPageForeground(false)
 })
+
+document.getElementById("receiver-open-app")?.addEventListener("click", () => exitReceiver())
 
 if (isKioskBuild) {
   exitBtn?.classList.add("hidden")
