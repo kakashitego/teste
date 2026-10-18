@@ -47,6 +47,17 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
         </script>
       )
     }
+    <script is:inline>
+      if (typeof globalThis === "undefined") {
+        (function () {
+          if (typeof self !== "undefined") { self.globalThis = self; }
+          else if (typeof window !== "undefined") { window.globalThis = window; }
+        })();
+      }
+      if (typeof queueMicrotask === "undefined") {
+        window.queueMicrotask = function (fn) { Promise.resolve().then(fn); };
+      }
+    </script>
     <style is:inline id="xt-i18n-shield">
       html[data-locale]:not([data-locale="en"]) [data-i18n]:not([data-i18n-done]),
       html[data-locale]:not([data-locale="en"]) [data-i18n-html]:not([data-i18n-done]) {
@@ -197,6 +208,12 @@ const appMode = import.meta.env.PUBLIC_APP_MODE || ""
                 ua.indexOf(" tv ") !== -1 ||
                 ua.indexOf("smart-tv") !== -1 ||
                 ua.indexOf("smarttv") !== -1 ||
+                ua.indexOf("webos") !== -1 ||
+                ua.indexOf("web0s") !== -1 ||
+                ua.indexOf("lg browser") !== -1 ||
+                ua.indexOf("lge") !== -1 ||
+                ua.indexOf("tizen") !== -1 ||
+                ua.indexOf("viera") !== -1 ||
                 ua.indexOf("googletv") !== -1 ||
                 ua.indexOf("appletv") !== -1 ||
                 ua.indexOf("hbbtv") !== -1 ||

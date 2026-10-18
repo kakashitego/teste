@@ -1500,6 +1500,23 @@ async function boot() {
     applyDownloadState()
     externalBtnHandle?.refresh()
     playTvBtnHandle?.refresh()
+  } else if (!detailSrc && creds.host && creds.user && creds.pass && movieId) {
+    const rawExt = catalogMovie?.container_extension || "mp4"
+    const ext = String(rawExt).replace(/^\.+/, "").toLowerCase() || "mp4"
+    detailSrcBuilder = (c) =>
+      fmtBase(c.host, c.port) +
+      "/movie/" +
+      encodeURIComponent(c.user) +
+      "/" +
+      encodeURIComponent(c.pass) +
+      "/" +
+      encodeURIComponent(movieId) +
+      "." +
+      ext
+    detailSrc = detailSrcBuilder(creds)
+    applyDownloadState()
+    externalBtnHandle?.refresh()
+    playTvBtnHandle?.refresh()
   }
 
   // Both probes are network-free (hydrate + memory read) and run under one bound,

@@ -4,6 +4,45 @@
 @import "@fontsource/instrument-serif/latin-400.css";
 @import "@fontsource/instrument-serif/latin-400-italic.css";
 
+/* ==========================================================================
+   Smart TV & Legacy Browser Compatibility (LG webOS / Chrome < 105)
+   Browsers on Smart TVs (Chrome 53-87) do not support the CSS `size` property,
+   causing SVGs with Tailwind's `size-*` to lose width/height and become giant.
+   ========================================================================== */
+svg {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+svg:not([width]):not([height]):not([class*="size-"]):not([class*="w-"]) {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.size-2, [class*="size-2"] { width: 0.5rem; height: 0.5rem; }
+.size-2\.5, [class*="size-2.5"] { width: 0.625rem; height: 0.625rem; }
+.size-3, [class*="size-3"] { width: 0.75rem; height: 0.75rem; }
+.size-3\.5, [class*="size-3.5"] { width: 0.875rem; height: 0.875rem; }
+.size-4, [class*="size-4"] { width: 1rem; height: 1rem; }
+.size-4\.5, [class*="size-4.5"] { width: 1.125rem; height: 1.125rem; }
+.size-5, [class*="size-5"] { width: 1.25rem; height: 1.25rem; }
+.size-5\.5, [class*="size-5.5"] { width: 1.375rem; height: 1.375rem; }
+.size-6, [class*="size-6"] { width: 1.5rem; height: 1.5rem; }
+.size-7, [class*="size-7"] { width: 1.75rem; height: 1.75rem; }
+.size-8, [class*="size-8"] { width: 2rem; height: 2rem; }
+.size-9, [class*="size-9"] { width: 2.25rem; height: 2.25rem; }
+.size-10, [class*="size-10"] { width: 2.5rem; height: 2.5rem; }
+.size-11, [class*="size-11"] { width: 2.75rem; height: 2.75rem; }
+.size-12, [class*="size-12"] { width: 3rem; height: 3rem; }
+.size-14, [class*="size-14"] { width: 3.5rem; height: 3.5rem; }
+.size-16, [class*="size-16"] { width: 4rem; height: 4rem; }
+.size-20, [class*="size-20"] { width: 5rem; height: 5rem; }
+.size-24, [class*="size-24"] { width: 6rem; height: 6rem; }
+
+/* Fallbacks for dvh in browsers before Chrome 108 */
+.h-dvh { min-height: 100vh; height: 100%; }
+.max-h-dvh { max-height: 100vh; }
+
 /* Landscape phone: short viewport in landscape orientation. Gated on
    max-height (not width) so it catches every modern phone in landscape
    - SE through Pro Max - while leaving tablets (>=600px tall) alone.
@@ -118,7 +157,23 @@ html.xt-theme-switching::view-transition-new(root) {
     --breakpoint-xl: 80em;      /* 1280px */
     --breakpoint-2xl: 96em;     /* 1536px */
 
-    /* - surfaces - */
+    /* - surfaces (with solid hex fallback for Smart TVs / WebOS / Chrome < 123) - */
+    --color-bg:        #0e1628;
+    --color-surface:   #151f36;
+    --color-surface-2: #1c2947;
+    --color-surface-3: #25365d;
+    --color-line:      #2b3e6b;
+    --color-line-soft: #1e2c4c;
+    --color-fg:   #f8fafc;
+    --color-fg-2: #cbd5e1;
+    --color-fg-3: #94a3b8;
+    --color-accent:      #e879f9;
+    --color-accent-soft: rgba(232, 121, 249, 0.18);
+    --color-on-accent:   #ffffff;
+    --color-ok:   #34d399;
+    --color-warn: #fbbf24;
+    --color-bad:  #f87171;
+
     --color-bg:        light-dark(oklch(0.925 0.030 var(--xt-tint-hue)), oklch(0.165 0.013 255));
     --color-surface:   light-dark(oklch(0.97  0.012 var(--xt-tint-hue)), oklch(0.215 0.013 255));
     --color-surface-2: light-dark(oklch(0.895 0.033 var(--xt-tint-hue)), oklch(0.265 0.013 255));

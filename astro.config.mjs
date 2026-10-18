@@ -29,6 +29,7 @@ export default defineConfig({
         : undefined,
     },
     build: {
+      target: "es2018",
       chunkSizeWarningLimit: 800,
     },
     optimizeDeps: {

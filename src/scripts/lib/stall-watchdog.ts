@@ -40,8 +40,8 @@ export interface StallWatchdogHandle {
   resetStallClock(): void
 }
 
-const DEFAULT_STALL_TIMEOUT_MS = 12000
-const DEFAULT_CHECK_INTERVAL_MS = 3000
+const DEFAULT_STALL_TIMEOUT_MS = 5000
+const DEFAULT_CHECK_INTERVAL_MS = 1500
 const DEFAULT_MAX_ATTEMPTS = 3
 const DEFAULT_PROGRESS_RESET_MS = 30000
 

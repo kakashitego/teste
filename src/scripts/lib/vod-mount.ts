@@ -354,7 +354,54 @@ export async function mountVodPlayback(options: VodMountOptions): Promise<void> 
 
   options.bindProgressListenersOnce(() => {
     let lastWriteAt = 0
+    let pausedAt = 0
+    let pauseRecoveryTimer: ReturnType<typeof setTimeout> | null = null
+
+    mountedPlayer.on("pause", () => {
+      pausedAt = Date.now()
+      if (pauseRecoveryTimer) {
+        clearTimeout(pauseRecoveryTimer)
+        pauseRecoveryTimer = null
+      }
+    })
+
+    mountedPlayer.on("play", () => {
+      const wasPausedDuration = pausedAt > 0 ? Date.now() - pausedAt : 0
+      pausedAt = 0
+      if (pauseRecoveryTimer) {
+        clearTimeout(pauseRecoveryTimer)
+        pauseRecoveryTimer = null
+      }
+
+      // If paused for more than 10 seconds, IPTV servers often terminate the idle TCP connection.
+      // If playback doesn't advance within 900ms, nudge currentTime to issue a fresh HTTP Range request.
+      if (wasPausedDuration > 10000) {
+        const startPos = mountedPlayer.currentTime?.() || 0
+        pauseRecoveryTimer = setTimeout(() => {
+          pauseRecoveryTimer = null
+          const currentPos = mountedPlayer.currentTime?.() || 0
+          const media = mountedPlayer.getMediaElement?.() || stallVideoEl
+          const isStalled = media ? (media.readyState < 3 || media.buffered.length === 0) : true
+          if (isStalled && Math.abs(currentPos - startPos) < 0.5) {
+            log.info("[xt:vod-mount] resuming from long pause; refreshing stream socket")
+            try {
+              mountedPlayer.currentTime?.(currentPos)
+            } catch {}
+          }
+        }, 900)
+      }
+    })
+
+    const clearRecovery = () => {
+      if (pauseRecoveryTimer) {
+        clearTimeout(pauseRecoveryTimer)
+        pauseRecoveryTimer = null
+      }
+    }
+    mountedPlayer.on("playing", clearRecovery)
+
     mountedPlayer.on("timeupdate", () => {
+      clearRecovery()
       if (!options.hasActiveContent()) return
       const now = Date.now()
       if (now - lastWriteAt < 5000) return
