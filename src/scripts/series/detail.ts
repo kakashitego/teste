@@ -31,6 +31,7 @@ import {
   CHANNEL_VIDEO_SCALE_CHANGED_EVENT,
   getSeriesProgressSummary,
 } from "@/scripts/lib/preferences.js"
+import { promoteNextEpisodeOnCompleted } from "@/scripts/lib/series-next-episode.ts"
 import { providerFetch } from "@/scripts/lib/provider-fetch.js"
 import {
   startDownload,
@@ -322,8 +323,19 @@ function openEpisodeMenu(ep, anchor, point) {
       t(watchedOn ? "list.menu.watchedUnmark" : "list.menu.watchedMark"),
       () => {
         if (!activePlaylistId) return
-        if (watchedOn) clearProgress(activePlaylistId, "episode", ep.id)
-        else markCompleted(activePlaylistId, "episode", ep.id, progressExtrasFor(ep))
+        if (watchedOn) {
+          clearProgress(activePlaylistId, "episode", ep.id)
+          const next = findNextEpisode(ep)
+          if (next) {
+            const nextProg = getProgress(activePlaylistId, "episode", next.episode.id)
+            if (nextProg?.isNextUp && (!nextProg.position || nextProg.position === 0)) {
+              clearProgress(activePlaylistId, "episode", next.episode.id)
+            }
+          }
+        } else {
+          markCompleted(activePlaylistId, "episode", ep.id, progressExtrasFor(ep))
+          void promoteNextEpisodeOnCompleted(activePlaylistId, ep.id, progressExtrasFor(ep), episodesByKey)
+        }
         renderEpisodes()
       }
     )
@@ -1683,7 +1695,10 @@ async function playEpisode(episode, options = {}) {
         ...progressExtrasFor(currentEpisode),
       })
       const nextEp = findNextEpisode(currentEpisode)
-      if (nextEp) showUpNextOverlay(nextEp)
+      if (nextEp) {
+        void promoteNextEpisodeOnCompleted(activePlaylistId, currentEpisode.id, progressExtrasFor(currentEpisode), episodesByKey)
+        showUpNextOverlay(nextEp)
+      }
     },
     onMounted: () => {
       pushEpisodePresence(episode)

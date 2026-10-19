@@ -509,7 +509,9 @@ function buildContinueWatchingItems(
       name,
       href,
       posterUrl,
-      meta: row.seriesName ? `${row.seriesName} · ${tag}` : tag,
+      meta: row.isNextUp
+        ? (row.seriesName ? `${row.seriesName} · ${tag} · ${t("detail.upNext")}` : `${tag} · ${t("detail.upNext")}`)
+        : (row.seriesName ? `${row.seriesName} · ${tag}` : tag),
       ariaLabel: t("tv.aria.resume", { name }),
       progressPercent: percent,
       onActivate: () => resumeOrNavigate(playlistId, resumeRow, href),

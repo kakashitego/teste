@@ -73,6 +73,7 @@
         : "#",
       percent,
       hasProgress: true,
+      isNextUp: !!raw.isNextUp,
       seriesId: raw.seriesId ?? null,
       seriesName: raw.seriesName ?? null,
     }
@@ -266,6 +267,12 @@
                          rounded-md px-1.5 py-0.5 bg-black/55 text-white/85 backdrop-blur-sm ring-1 ring-white/10">
                   <span class="size-1.5 rounded-full bg-accent" aria-hidden="true"></span>
                   Live
+                </span>
+              {:else if entry.isNextUp}
+                <span
+                  class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 text-label font-medium uppercase tracking-wide
+                         rounded-md px-1.5 py-0.5 bg-accent text-bg shadow-sm">
+                  {tr("detail.upNext")}
                 </span>
               {/if}
 

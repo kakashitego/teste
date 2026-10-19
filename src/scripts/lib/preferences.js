@@ -929,7 +929,7 @@ export function setProgress(playlistId, kind, id, position, duration, extras) {
   const positionChanged = positionDelta >= 5
   const completionChanged = !wasCompleted && completed
   const wasNew = !prev
-  if (wasNew || completionChanged || positionChanged) {
+  if (wasNew || completionChanged || positionChanged || extras?.isNextUp) {
     dispatch(EVT_PROGRESS_CHANGED, {
       playlistId,
       kind,
@@ -937,7 +937,16 @@ export function setProgress(playlistId, kind, id, position, duration, extras) {
       completed,
       position: pos,
       duration: next.duration,
+      isNextUp: !!extras?.isNextUp,
     })
+  }
+
+  if (completionChanged && kind === "episode") {
+    import("@/scripts/lib/series-next-episode.ts")
+      .then(({ promoteNextEpisodeOnCompleted }) => {
+        void promoteNextEpisodeOnCompleted(playlistId, id, extras)
+      })
+      .catch(() => {})
   }
 }
 
@@ -974,6 +983,14 @@ export function markCompleted(playlistId, kind, id, extras) {
     position: next.position,
     duration: next.duration,
   })
+
+  if (kind === "episode") {
+    import("@/scripts/lib/series-next-episode.ts")
+      .then(({ promoteNextEpisodeOnCompleted }) => {
+        void promoteNextEpisodeOnCompleted(playlistId, id, extras)
+      })
+      .catch(() => {})
+  }
 }
 
 /**
@@ -1044,11 +1061,24 @@ export function getContinueWatching(playlistId, limit = 6) {
   }
   for (const [id, p] of Object.entries(e.progEpisode)) {
     if (p?.completed) continue
-    if (!(p?.position > 0)) continue
+    if (!(p?.position > 0) && !p?.isNextUp) continue
     out.push({ kind: "episode", id, ...p })
   }
   out.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-  return out.slice(0, Math.max(0, limit))
+
+  // Deduplicate series so each series only shows its current relevant episode
+  const seenSeries = new Set()
+  const result = []
+  for (const item of out) {
+    if (item.kind === "episode" && item.seriesId != null) {
+      const sKey = String(item.seriesId)
+      if (seenSeries.has(sKey)) continue
+      seenSeries.add(sKey)
+    }
+    result.push(item)
+    if (result.length >= limit) break
+  }
+  return result
 }
 
 /**
