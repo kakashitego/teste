@@ -551,6 +551,13 @@ const view: TvView = {
 
     function applySeriesInfo(data: any): void {
       seriesInfoRaw = data
+      if (activePlaylistId && seriesId) {
+        void import("@/scripts/lib/series-next-episode.ts")
+          .then(({ checkAndPromoteNewEpisodesForSeries }) =>
+            checkAndPromoteNewEpisodesForSeries(activePlaylistId, seriesId, data)
+          )
+          .catch(() => {})
+      }
       const info = data?.info || {}
 
       const apiName = info.name || info.title || ""

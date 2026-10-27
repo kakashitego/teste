@@ -78,8 +78,40 @@ export function attachStallWatchdog(
   let attemptCount = 0
   let dormant = false
 
+  // Video frame tracking for freeze recovery (when audio advances but video frames stall)
+  let lastVideoFrames = 0
+  let videoFramesFrozenMs = 0
+  let lastFreezeRecoveryAt = 0
+
+  function checkVideoFrameProgress(): void {
+    if (typeof (videoEl as any).getVideoPlaybackQuality !== "function") return
+    try {
+      const quality = (videoEl as any).getVideoPlaybackQuality()
+      if (!quality || typeof quality.totalVideoFrames !== "number") return
+      const totalFrames = quality.totalVideoFrames
+      if (totalFrames > 0 && totalFrames <= lastVideoFrames) {
+        videoFramesFrozenMs += checkIntervalMs
+        const now = Date.now()
+        if (videoFramesFrozenMs >= 2500 && now - lastFreezeRecoveryAt > 5000) {
+          lastFreezeRecoveryAt = now
+          videoFramesFrozenMs = 0
+          log.warn(
+            "[xt:stall-watchdog] video frame freeze detected (audio playing, video frozen) - nudging playhead to recover decoder"
+          )
+          try {
+            videoEl.currentTime = videoEl.currentTime + 0.05
+          } catch {}
+        }
+      } else if (totalFrames > lastVideoFrames) {
+        videoFramesFrozenMs = 0
+        lastVideoFrames = totalFrames
+      }
+    } catch {}
+  }
+
   function clearStalledAccumulator(): void {
     stalledMs = 0
+    videoFramesFrozenMs = 0
   }
 
   function resetStallClock(): void {
@@ -120,11 +152,15 @@ export function attachStallWatchdog(
 
     const currentTime = videoEl.currentTime
     const bufferedEnd = bufferedAheadEnd(videoEl)
-    const progressed = currentTime > lastCurrentTime || bufferedEnd > lastBufferedEnd
+    const timeAdvanced = currentTime > lastCurrentTime
+    const progressed = timeAdvanced || bufferedEnd > lastBufferedEnd
     lastCurrentTime = currentTime
     lastBufferedEnd = bufferedEnd
 
     if (progressed) {
+      if (timeAdvanced) {
+        checkVideoFrameProgress()
+      }
       clearStalledAccumulator()
       healthyMs += checkIntervalMs
       if (healthyMs >= progressResetMs) {

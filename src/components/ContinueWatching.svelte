@@ -140,6 +140,9 @@
     ]).then(() => {
       if (generation !== reloadGeneration) return
       entries = buildEntries(active._id)
+      void import("@/scripts/lib/series-next-episode.ts")
+        .then(({ checkForNewEpisodesInFollowedSeries }) => checkForNewEpisodesInFollowedSeries(active._id))
+        .catch(() => {})
     }).catch(() => {})
   }
 

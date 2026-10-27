@@ -1184,6 +1184,47 @@ export function getSeriesEpisodeProgress(playlistId, seriesId) {
 }
 
 /**
+ * Returns series IDs where all watched episodes are completed (waiting for new episodes),
+ * ordered by most recently watched.
+ * @param {string} playlistId
+ * @returns {Array<{ seriesId: number, lastEpisodeId: string, lastWatched: EpisodeProgressEntry }>}
+ */
+export function getFollowedSeriesWaitingForEpisodes(playlistId) {
+  if (!playlistId) return []
+  const entry = cache.get(playlistId)
+  if (!entry || !entry.progEpisode) return []
+
+  const seriesMap = new Map()
+  for (const [id, prog] of Object.entries(entry.progEpisode)) {
+    if (!prog || prog.seriesId == null) continue
+    const sid = Number(prog.seriesId)
+    if (!Number.isFinite(sid)) continue
+
+    let s = seriesMap.get(sid)
+    if (!s) {
+      s = { seriesId: sid, hasActive: false, lastEpisodeId: id, lastWatched: prog }
+      seriesMap.set(sid, s)
+    }
+    if (!prog.completed || prog.isNextUp) {
+      s.hasActive = true
+    }
+    if (!s.lastWatched || (prog.updatedAt || 0) > (s.lastWatched.updatedAt || 0)) {
+      s.lastWatched = prog
+      s.lastEpisodeId = id
+    }
+  }
+
+  const out = []
+  for (const item of seriesMap.values()) {
+    if (!item.hasActive && item.lastWatched) {
+      out.push(item)
+    }
+  }
+  out.sort((a, b) => (b.lastWatched.updatedAt || 0) - (a.lastWatched.updatedAt || 0))
+  return out
+}
+
+/**
  * Manual "mark as watched" override for a series, independent of per-episode
  * progress. Unmarking also clears any recorded episode progress for that
  * series so a re-watch starts clean.

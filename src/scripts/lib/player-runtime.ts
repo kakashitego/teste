@@ -149,6 +149,14 @@ const isAndroid = (() => {
   return /Android/i.test(navigator.userAgent || "")
 })()
 
+export const isMobileDevice = (() => {
+  if (typeof navigator === "undefined") return false
+  return (
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "") ||
+    (typeof window !== "undefined" && window.innerWidth < 768)
+  )
+})()
+
 export const isMacOS = (() => {
   if (typeof navigator === "undefined") return false
   const platform = (navigator as any).platform || ""
@@ -1253,7 +1261,20 @@ function attachHlsToVideo(
   log.info(`[xt:player] hls transport=hls.js loader=${isTauri ? "tauri-http" : "xhr"}`)
   // Off by default: a manifest's DEFAULT=YES rendition would otherwise render unasked.
   // enableWorker is set to false to prevent cross-origin blob/worker security errors in iframes.
-  const hlsConfig: Record<string, unknown> = { enableWorker: false, subtitleDisplay: false }
+  const hlsConfig: Record<string, unknown> = {
+    enableWorker: false,
+    subtitleDisplay: false,
+    capLevelToPlayerSize: true,
+    maxBufferLength: isMobileDevice ? 8 : 15,
+    maxMaxBufferLength: isMobileDevice ? 15 : 30,
+    maxBufferSize: isMobileDevice ? 25 * 1024 * 1024 : 50 * 1024 * 1024,
+    backBufferLength: isMobileDevice ? 8 : 15,
+    lowLatencyMode: false,
+    progressive: true,
+    nudgeOffset: 0.1,
+    nudgeMaxRetry: 5,
+    fragLoadingTimeOut: 20000,
+  }
   if (isTauri) {
     hlsConfig.loader = createTauriHlsLoaderClass(authorization, authorizedOrigin)
   } else if (authorization) {
@@ -1661,7 +1682,20 @@ async function attachMpegts(
   }
 
   const start = (useTauriLoader: boolean) => {
-    const config: Record<string, unknown> = {}
+    const config: Record<string, unknown> = {
+      autoCleanupSourceBuffer: true,
+      autoCleanupMaxBackwardDuration: isMobileDevice ? 20 : 45,
+      autoCleanupMinBackwardDuration: isMobileDevice ? 10 : 25,
+      fixAudioTimestampGap: true,
+    }
+    if (isMobileDevice) {
+      config.enableStashBuffer = false
+      config.stashInitialSize = 128 * 1024
+      config.lazyLoad = false
+      config.liveBufferLatencyChasing = true
+      config.liveBufferLatencyMaxLatency = 2.5
+      config.liveBufferLatencyMinRemain = 0.5
+    }
     if (useTauriLoader) config.customLoader = createTauriStreamLoaderClass(mpegts)
     if (authorization) config.headers = { Authorization: authorization }
     if (!isLive) {
@@ -1798,6 +1832,8 @@ async function mountVideoJs(
         overrideNative: !isMacOS,
         limitRenditionByPlayerDimensions: true,
         smoothQualityChange: true,
+        maxBufferLength: isMobileDevice ? 8 : 15,
+        maxMaxBufferLength: isMobileDevice ? 15 : 30,
       },
     },
   }) as any

@@ -31,7 +31,10 @@ import {
   CHANNEL_VIDEO_SCALE_CHANGED_EVENT,
   getSeriesProgressSummary,
 } from "@/scripts/lib/preferences.js"
-import { promoteNextEpisodeOnCompleted } from "@/scripts/lib/series-next-episode.ts"
+import {
+  promoteNextEpisodeOnCompleted,
+  checkAndPromoteNewEpisodesForSeries,
+} from "@/scripts/lib/series-next-episode.ts"
 import { providerFetch } from "@/scripts/lib/provider-fetch.js"
 import {
   startDownload,
@@ -846,6 +849,9 @@ function applySeriesInfo(data) {
   }
 
   episodesByKey = byKey
+  if (activePlaylistId && series?.id) {
+    checkAndPromoteNewEpisodesForSeries(activePlaylistId, series.id, data)
+  }
   const seasonKeys = Object.keys(byKey).sort((a, b) => Number(a) - Number(b))
   if (!seasonKeys.includes(currentSeason)) {
     currentSeason = seasonKeys[0] || ""

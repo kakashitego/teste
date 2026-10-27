@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect } from "vitest"
 import {
   findNextUnwatchedEpisode,
   promoteNextEpisodeOnCompleted,
+  checkAndPromoteNewEpisodesForSeries,
 } from "@/scripts/lib/series-next-episode.ts"
 import {
   setProgress,
@@ -78,5 +79,50 @@ describe("Series next episode promotion & Continue Watching", () => {
     expect(seriesItems.length).toBe(1)
     expect(seriesItems[0].id).toBe("102")
     expect(seriesItems[0].isNextUp).toBe(true)
+  })
+
+  it("checkAndPromoteNewEpisodesForSeries detects newly added episode 3 when ep 2 was previously completed", () => {
+    const testPid = "test-new-episodes-playlist"
+    const seriesId = 888
+
+    // User watched ep 1 and ep 2 (which were all that existed at the time)
+    markCompleted(testPid, "episode", 801, {
+      seriesId,
+      seriesName: "House of Streamers",
+      season: 1,
+      episodeNum: 1,
+    })
+    markCompleted(testPid, "episode", 802, {
+      seriesId,
+      seriesName: "House of Streamers",
+      season: 1,
+      episodeNum: 2,
+    })
+
+    // Currently all watched episodes are completed, so Continue Watching is empty for this series
+    let cw = getContinueWatching(testPid, 10)
+    expect(cw.filter((i) => i.seriesId === seriesId).length).toBe(0)
+
+    // Provider now adds episode 803 (Season 1 Episode 3)
+    const updatedSeriesData = {
+      episodes: {
+        "1": [
+          { id: 801, season: 1, episode_num: 1, title: "Ep 1" },
+          { id: 802, season: 1, episode_num: 2, title: "Ep 2" },
+          { id: 803, season: 1, episode_num: 3, title: "Ep 3 - The New Release" },
+        ],
+      },
+    }
+
+    const detected = checkAndPromoteNewEpisodesForSeries(testPid, seriesId, updatedSeriesData)
+    expect(detected).toBe(true)
+
+    // Now Episode 803 must be in Continue Watching!
+    cw = getContinueWatching(testPid, 10)
+    const seriesEntries = cw.filter((i) => i.seriesId === seriesId)
+    expect(seriesEntries.length).toBe(1)
+    expect(seriesEntries[0].id).toBe("803")
+    expect(seriesEntries[0].isNextUp).toBe(true)
+    expect(seriesEntries[0].episodeTitle).toBe("Ep 3 - The New Release")
   })
 })

@@ -410,8 +410,20 @@ html[data-tv="1"] *::-webkit-scrollbar-track {
 }
 
 /* ────────────────────────────── */
-/* Video.js overrides             */
+/* Video hardware acceleration   */
 /* ────────────────────────────── */
+video,
+.video-js video,
+.video-js .vjs-tech,
+.art-video-player video,
+.art-video {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+}
+
 .video-js {
     font-family: var(--font-sans);
 }

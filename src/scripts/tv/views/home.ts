@@ -388,6 +388,9 @@ function buildContinueWatchingItems(
   onBackdropResolved: (focusKey: string) => void,
   onLiveNowNextResolved: (focusKey: string) => void
 ): CardItem[] {
+  void import("@/scripts/lib/series-next-episode.ts")
+    .then(({ checkForNewEpisodesInFollowedSeries }) => checkForNewEpisodesInFollowedSeries(playlistId))
+    .catch(() => {})
   const progressRows = getContinueWatching(playlistId, RAIL_ITEM_LIMIT) as any[]
   const liveRecents = getRecents(playlistId, "live") as LiveRecentEntry[]
   const merged = mergeContinueWatchingRows(progressRows, liveRecents)
