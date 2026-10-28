@@ -84,15 +84,23 @@ export function attachStallWatchdog(
   let lastFreezeRecoveryAt = 0
 
   function checkVideoFrameProgress(): void {
-    if (typeof (videoEl as any).getVideoPlaybackQuality !== "function") return
+    let totalFrames: number | null = null
     try {
-      const quality = (videoEl as any).getVideoPlaybackQuality()
-      if (!quality || typeof quality.totalVideoFrames !== "number") return
-      const totalFrames = quality.totalVideoFrames
+      if (typeof (videoEl as any).getVideoPlaybackQuality === "function") {
+        const quality = (videoEl as any).getVideoPlaybackQuality()
+        if (quality && typeof quality.totalVideoFrames === "number") {
+          totalFrames = quality.totalVideoFrames
+        }
+      }
+      if (totalFrames == null && typeof (videoEl as any).webkitDecodedFrameCount === "number") {
+        totalFrames = (videoEl as any).webkitDecodedFrameCount
+      }
+      if (totalFrames == null) return
+
       if (totalFrames > 0 && totalFrames <= lastVideoFrames) {
         videoFramesFrozenMs += checkIntervalMs
         const now = Date.now()
-        if (videoFramesFrozenMs >= 2500 && now - lastFreezeRecoveryAt > 5000) {
+        if (videoFramesFrozenMs >= 2000 && now - lastFreezeRecoveryAt > 4000) {
           lastFreezeRecoveryAt = now
           videoFramesFrozenMs = 0
           log.warn(

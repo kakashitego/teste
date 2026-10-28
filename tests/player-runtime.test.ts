@@ -327,9 +327,13 @@ describe("shouldPreferNativeHls", () => {
     expect(shouldPreferNativeHls({ isMacOS: true, isTauri: false, canPlayNativeHls: true })).toBe(true)
   })
 
-  it("never prefers native off macOS", () => {
-    expect(shouldPreferNativeHls({ isMacOS: false, isTauri: false, canPlayNativeHls: true })).toBe(false)
-    expect(shouldPreferNativeHls({ isMacOS: false, isTauri: true, canPlayNativeHls: true })).toBe(false)
+  it("prefers native HLS on iOS in Safari", () => {
+    expect(shouldPreferNativeHls({ isMacOS: false, isIOS: true, isTauri: false, canPlayNativeHls: true })).toBe(true)
+  })
+
+  it("never prefers native off macOS/iOS", () => {
+    expect(shouldPreferNativeHls({ isMacOS: false, isIOS: false, isTauri: false, canPlayNativeHls: true })).toBe(false)
+    expect(shouldPreferNativeHls({ isMacOS: false, isIOS: false, isTauri: true, canPlayNativeHls: true })).toBe(false)
   })
 
   it("never prefers native when the element cannot play HLS natively", () => {
