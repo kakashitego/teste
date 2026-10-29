@@ -100,15 +100,19 @@ export function attachStallWatchdog(
       if (totalFrames > 0 && totalFrames <= lastVideoFrames) {
         videoFramesFrozenMs += checkIntervalMs
         const now = Date.now()
-        if (videoFramesFrozenMs >= 2000 && now - lastFreezeRecoveryAt > 4000) {
+        if (videoFramesFrozenMs >= 3000 && now - lastFreezeRecoveryAt > 6000) {
           lastFreezeRecoveryAt = now
           videoFramesFrozenMs = 0
-          log.warn(
-            "[xt:stall-watchdog] video frame freeze detected (audio playing, video frozen) - nudging playhead to recover decoder"
-          )
-          try {
-            videoEl.currentTime = videoEl.currentTime + 0.05
-          } catch {}
+          const cur = videoEl.currentTime
+          const bufEnd = bufferedAheadEnd(videoEl)
+          if (bufEnd > cur + 0.3) {
+            log.warn(
+              "[xt:stall-watchdog] video frame freeze detected (audio playing, video frozen) - nudging playhead to recover decoder"
+            )
+            try {
+              videoEl.currentTime = Math.min(cur + 0.04, bufEnd - 0.1)
+            } catch {}
+          }
         }
       } else if (totalFrames > lastVideoFrames) {
         videoFramesFrozenMs = 0

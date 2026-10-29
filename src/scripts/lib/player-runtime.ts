@@ -1210,12 +1210,10 @@ export function setNativeSrc(video: HTMLVideoElement, url: string): void {
  */
 export function shouldPreferNativeHls(input: {
   isMacOS: boolean
-  isIOS?: boolean
   isTauri: boolean
   canPlayNativeHls: boolean
 }): boolean {
-  const isApple = input.isMacOS || !!input.isIOS
-  return isApple && !input.isTauri && input.canPlayNativeHls
+  return input.isMacOS && !input.isTauri && input.canPlayNativeHls
 }
 
 // A lost demuxer emits these by the hundred per second; the progress threshold spares streams that error yet still play.
@@ -1250,13 +1248,13 @@ function attachHlsToVideo(
   // forceNative: this channel's audio (AC-3) cannot decode in this WebView's MSE.
   const preferNative =
     (forceNative && canPlayNativeHls) ||
-    shouldPreferNativeHls({ isMacOS, isIOS, isTauri, canPlayNativeHls })
+    shouldPreferNativeHls({ isMacOS, isTauri, canPlayNativeHls })
   if (preferNative) {
     // AVFoundation fetches everything itself: no custom UA/auth, no codec telemetry.
     log.info(
       forceNative
         ? "[xt:player] hls transport=native (AC-3 audio fallback): MSE has no AC-3 decoder here"
-        : "[xt:player] hls transport=native (Apple AVFoundation): hardware decode enabled"
+        : "[xt:player] hls transport=native (macOS AVFoundation): no custom headers, no codec telemetry"
     )
     noteMonoSourceChange(video, url)
     setNativeSrc(video, url)
@@ -1842,7 +1840,7 @@ async function mountVideoJs(
     ...(playbackRatesEnabled ? { playbackRates: [0.75, 1, 1.25, 1.5, 2] } : {}),
     html5: options.html5 ?? {
       vhs: {
-        overrideNative: !isMacOS && !isIOS,
+        overrideNative: !isMacOS,
         limitRenditionByPlayerDimensions: true,
         smoothQualityChange: true,
         maxBufferLength: isMobileDevice ? 8 : 15,
@@ -1952,12 +1950,6 @@ async function mountVideoJs(
   function loadHls(src: string) {
     destroyMpegts()
     destroyShaka()
-    // On iOS Safari / Apple devices, always prefer native HLS so AVFoundation decodes via hardware
-    if (isIOS) {
-      destroyHls()
-      player.src({ src, type: "application/x-mpegURL" })
-      return
-    }
     // Credentialed URLs need hls.js too: VHS hands them to fetch/XHR, which
     // Chromium blocks for embedded credentials.
     if (isTauri || splitUrlAuth(src).authorization) {
@@ -3162,7 +3154,7 @@ export async function mountPlayer(
   backend: PlayerBackend = getPlayerBackend(),
   options: MountOptions = {},
 ): Promise<Mounted> {
-  if (backend === "artplayer" && (isAndroid || isIOS)) backend = "videojs"
+  if (backend === "artplayer" && isAndroid) backend = "videojs"
   if (backend === "mpv" || backend === "vlc") {
     if (!externalPlayersAvailable) {
       log.warn(`[xt:player] external backend "${backend}" requested but not available; falling back to artplayer`)
